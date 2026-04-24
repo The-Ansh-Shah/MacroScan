@@ -4,7 +4,7 @@ enum FoodSource: String, Codable, CaseIterable {
     case barcode
     case aiVision
     case manual
-    case diningHall
+    case fatSecret
 }
 
 enum MealType: String, Codable, CaseIterable, Identifiable {
@@ -38,29 +38,62 @@ enum DietGoal: String, Codable, CaseIterable {
         rawValue.capitalized
     }
 
-    var proteinMultiplier: Double {
-        switch self {
-        case .cut: return 1.0
-        case .maintain: return 0.9
-        case .bulk: return 1.1
-        }
-    }
+    var proteinMultiplier: Double { 0.75 }
 }
 
-enum DiningLocation: String, Codable, CaseIterable, Identifiable {
-    case cafe3
-    case clarkKerr
-    case crossroads
-    case foothill
+enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
+    case male
+    case female
+    case unspecified
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .cafe3: return "Cafe 3"
-        case .clarkKerr: return "Clark Kerr"
-        case .crossroads: return "Crossroads"
-        case .foothill: return "Foothill"
+        case .male: return "Male"
+        case .female: return "Female"
+        case .unspecified: return "Prefer not to say"
         }
     }
 }
+
+enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
+    case sedentary
+    case lightlyActive
+    case moderatelyActive
+    case veryActive
+    case extremelyActive
+
+    var id: String { rawValue }
+
+    var multiplier: Double {
+        switch self {
+        case .sedentary: return 1.2
+        case .lightlyActive: return 1.375
+        case .moderatelyActive: return 1.55
+        case .veryActive: return 1.725
+        case .extremelyActive: return 1.9
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .sedentary: return "Sedentary"
+        case .lightlyActive: return "Lightly active"
+        case .moderatelyActive: return "Moderately active"
+        case .veryActive: return "Very active"
+        case .extremelyActive: return "Extremely active"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .sedentary: return "Desk job, little exercise"
+        case .lightlyActive: return "Light exercise 1–3 days/week"
+        case .moderatelyActive: return "Moderate exercise 3–5 days/week"
+        case .veryActive: return "Hard exercise 6–7 days/week"
+        case .extremelyActive: return "Athlete / physical job"
+        }
+    }
+}
+
