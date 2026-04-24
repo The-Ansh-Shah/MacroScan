@@ -29,6 +29,7 @@ struct ProfileEditorSheet: View {
                 .font(.mBody)
             }
         }
+        .keyboardDoneButton()
         .navigationTitle("Edit Profile")
         #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)

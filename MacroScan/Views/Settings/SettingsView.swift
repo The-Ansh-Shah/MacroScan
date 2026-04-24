@@ -190,6 +190,7 @@ private struct SettingsFormView: View {
                 }
             }
         }
+        .keyboardDoneButton()
         .navigationTitle("Settings")
     }
 

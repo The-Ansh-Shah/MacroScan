@@ -87,6 +87,7 @@ struct LogMeasurementSheet: View {
                         .lineLimit(1...3)
                 }
             }
+            .keyboardDoneButton()
             .navigationTitle("Log Measurement")
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)

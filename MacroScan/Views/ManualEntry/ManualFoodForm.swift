@@ -15,7 +15,6 @@ struct ManualFoodForm: View {
     @State private var fiberG = ""
     @State private var gramsEaten = ""
     @State private var selectedMealType: MealType = .lunch
-    @State private var isVegetarian = true
 
     private var isValid: Bool {
         !name.isEmpty &&
@@ -34,8 +33,6 @@ struct ManualFoodForm: View {
                     TextField("Name", text: $name)
                         .font(.mBody)
                     TextField("Brand (optional)", text: $brand)
-                        .font(.mBody)
-                    Toggle("Vegetarian", isOn: $isVegetarian)
                         .font(.mBody)
                 }
 
@@ -76,6 +73,7 @@ struct ManualFoodForm: View {
                     }
                 }
             }
+            .keyboardDoneButton()
             .navigationTitle("Manual Entry")
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
@@ -134,8 +132,7 @@ struct ManualFoodForm: View {
             carbsG: carb,
             fatG: fat,
             fiberG: Double(fiberG) ?? 0,
-            source: .manual,
-            isVegetarian: isVegetarian
+            source: .manual
         )
 
         let repo = FoodRepository(modelContext: modelContext)
@@ -158,5 +155,5 @@ struct ManualFoodForm: View {
 
 #Preview {
     ManualFoodForm()
-        .modelContainer(for: [Food.self, LogEntry.self], inMemory: true)
+        .modelContainer(for: [Food.self, LogEntry.self, UserProfile.self, BodyMeasurement.self, WeightGoal.self], inMemory: true)
 }

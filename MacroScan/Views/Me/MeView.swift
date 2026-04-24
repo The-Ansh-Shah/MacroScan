@@ -50,6 +50,7 @@ struct MeView: View {
                 }
                 .padding(.horizontal, Spacing.md)
             }
+            .keyboardDoneButton()
             .navigationTitle("Me")
             .sheet(isPresented: $showingLogMeasurement) {
                 if let profile {
