@@ -38,12 +38,17 @@ struct MacroRing: View {
                     .rotationEffect(.degrees(-90))
                     .animation(DesignConstants.ringAnimation, value: displayRatio)
 
-                VStack(spacing: 0) {
+                VStack(spacing: 1) {
                     Text("\(Int(current))")
-                        .font(.mStatNumber)
-                        .foregroundStyle(Color.mTextPrimary)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(current > target && isOverBad ? Color.mOver : Color.mTextPrimary)
+                    Text("/ \(Int(target))")
+                        .font(.system(size: 10, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.mTextSecondary)
                     Text(unit)
-                        .font(.mCaption)
+                        .font(.system(size: 10, design: .rounded))
                         .foregroundStyle(Color.mTextTertiary)
                 }
             }
@@ -56,15 +61,27 @@ struct MacroRing: View {
 }
 
 #Preview {
-    HStack(spacing: Spacing.lg) {
-        MacroRing(label: "Calories", current: 1200, target: 1800, unit: "cal", isOverBad: true)
-            .frame(width: 80)
-        MacroRing(label: "Protein", current: 140, target: 160, unit: "g", isOverBad: false)
-            .frame(width: 80)
-        MacroRing(label: "Carbs", current: 100, target: 180, unit: "g", isOverBad: false)
-            .frame(width: 80)
-        MacroRing(label: "Fat", current: 60, target: 55, unit: "g", isOverBad: true)
-            .frame(width: 80)
+    VStack(spacing: Spacing.lg) {
+        HStack(spacing: Spacing.md) {
+            MacroRing(label: "Calories", current: 1768, target: 2000, unit: "cal", isOverBad: true)
+                .frame(width: 80)
+            MacroRing(label: "Protein", current: 152, target: 160, unit: "g", isOverBad: false)
+                .frame(width: 80)
+            MacroRing(label: "Carbs", current: 100, target: 180, unit: "g", isOverBad: false)
+                .frame(width: 80)
+            MacroRing(label: "Fat", current: 60, target: 55, unit: "g", isOverBad: true)
+                .frame(width: 80)
+        }
+        HStack(spacing: Spacing.md) {
+            MacroRing(label: "Calories", current: 0, target: 2000, unit: "cal", isOverBad: true)
+                .frame(width: 80)
+            MacroRing(label: "Protein", current: 0, target: 160, unit: "g", isOverBad: false)
+                .frame(width: 80)
+            MacroRing(label: "Carbs", current: 0, target: 180, unit: "g", isOverBad: false)
+                .frame(width: 80)
+            MacroRing(label: "Fat", current: 0, target: 55, unit: "g", isOverBad: true)
+                .frame(width: 80)
+        }
     }
     .padding()
 }
