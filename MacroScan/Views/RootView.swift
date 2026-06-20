@@ -31,6 +31,7 @@ struct RootView: View {
         }
         .onAppear {
             ensureUserProfile()
+            SeedLibrary.seedIfNeeded(into: modelContext)
             if let profile = profiles.first, profile.heightIn == nil && profile.ageYears == nil {
                 showingOnboarding = true
             }

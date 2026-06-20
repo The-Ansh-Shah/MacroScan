@@ -105,6 +105,19 @@ final class Food {
     }
 }
 
+extension Food {
+    /// Whether this food respects the user's dietary preferences.
+    /// Single source of truth used to filter suggestions and gate curated picks
+    /// (mirrors the warning chip shown in `ScanResultSheet`).
+    func isAllowed(for profile: UserProfile) -> Bool {
+        if profile.isVegetarian && !isVegetarian { return false }
+        let excluded = profile.excludedIngredients
+        if excluded.contains("eggs") && containsEggs { return false }
+        if excluded.contains("mushrooms") && containsMushrooms { return false }
+        return true
+    }
+}
+
 struct ScaledMacros {
     let calories: Double
     let proteinG: Double

@@ -104,6 +104,15 @@ class FoodRepository {
         entriesForDate(date).reduce(ScaledMacros.zero) { $0 + $1.scaledMacros }
     }
 
+    /// Best default meal type: reuse the meal you logged into within the last ~90 min,
+    /// otherwise fall back to the time-of-day guess. Cuts the most frequent picker correction.
+    func suggestedMealType(now: Date = Date()) -> MealType {
+        let recent = entriesForDate(now)
+            .filter { $0.loggedAt <= now && now.timeIntervalSince($0.loggedAt) <= 90 * 60 }
+            .max { $0.loggedAt < $1.loggedAt }
+        return recent?.mealType ?? .currentGuess
+    }
+
     func entriesForWeek(startingFrom date: Date) -> [LogEntry] {
         let start = date.startOfWeek
         let end = Calendar.current.date(byAdding: .day, value: 7, to: start)!
@@ -114,6 +123,20 @@ class FoodRepository {
             sortBy: [SortDescriptor(\LogEntry.loggedAt)]
         )
         return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    /// Daily logged calories for the trailing `days`, excluding days with no intake.
+    /// Used to estimate empirical/adaptive TDEE from real eating data.
+    func trailingDailyIntake(days: Int) -> [(date: Date, kcal: Double)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        var out: [(date: Date, kcal: Double)] = []
+        for daysAgo in 0..<days {
+            guard let date = cal.date(byAdding: .day, value: -daysAgo, to: today) else { continue }
+            let kcal = dailyTotals(forDate: date).calories
+            if kcal > 0 { out.append((date: date, kcal: kcal)) }
+        }
+        return out
     }
 
     // MARK: - User Profile

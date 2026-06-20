@@ -36,13 +36,18 @@ struct MealRanker {
         guard calorieGap > 0 || proteinGap > 0 else { return [] }
 
         let scored = foods.compactMap { food -> (Food, Double)? in
+            // Respect dietary preferences (vegetarian / egg / mushroom exclusions).
+            guard food.isAllowed(for: profile) else { return nil }
             // Skip foods that would blow the calorie budget
             guard food.calories <= calorieGap + 50 else { return nil }
 
-            // Score: how much protein gap it closes per calorie
+            // Score: how much protein/fiber gap it closes, weighted by protein
+            // density (g protein per calorie) so lean, high-protein vegetarian
+            // options outrank calorie-dense ones on a cut.
             let proteinFill = min(food.proteinG, proteinGap)
             let fiberFill = min(food.fiberG, fiberGap)
-            let score = (proteinFill * 3.0) + fiberFill
+            let proteinPerCal = food.proteinG / max(food.calories, 1)
+            let score = (proteinFill * 3.0 + fiberFill) * (1.0 + proteinPerCal * 4.0)
 
             // Boost from recency
             let recencyBoost: Double

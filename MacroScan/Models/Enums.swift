@@ -5,6 +5,8 @@ enum FoodSource: String, Codable, CaseIterable {
     case aiVision
     case manual
     case fatSecret
+    /// Bundled vegetarian high-protein library seeded on first launch.
+    case curated
 }
 
 enum MealType: String, Codable, CaseIterable, Identifiable {

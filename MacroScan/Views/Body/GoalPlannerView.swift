@@ -40,6 +40,25 @@ struct GoalPlannerView: View {
         return latest.bodyFatPct ?? BodyCompositionService.currentBodyFat(profile: profiles.first ?? UserProfile(), latest: latest)?.pct
     }
 
+    /// Maintenance calories measured from the user's own intake-vs-trend data, when there's
+    /// enough logging history. Nil falls the plan back to the Mifflin-St Jeor estimate.
+    private var rawEmpiricalTDEE: Double? {
+        let repo = FoodRepository(modelContext: modelContext)
+        return BodyCompositionService.empiricalTDEE(
+            intakeByDay: repo.trailingDailyIntake(days: 28),
+            trendWeights: BodyCompositionService.trendWeights(from: measurements)
+        )
+    }
+
+    /// TDEE used to build the plan: empirical blended toward Mifflin by logging confidence.
+    private var planTDEE: Double? {
+        guard let profile, let w = currentWeight else { return rawEmpiricalTDEE }
+        let repo = FoodRepository(modelContext: modelContext)
+        let loggedDays = repo.trailingDailyIntake(days: 28).count
+        let mifflin = BodyCompositionService.tdee(from: profile, currentWeightLb: w)
+        return BodyCompositionService.blendedTDEE(empirical: rawEmpiricalTDEE, mifflin: mifflin, loggedDays: loggedDays)
+    }
+
     private var plan: DeficitPlan? {
         guard let profile, let current = currentWeight, current > 0 else { return nil }
 
@@ -60,7 +79,8 @@ struct GoalPlannerView: View {
             currentWeightLb: current,
             targetWeightLb: targetWeight,
             targetDate: targetDate,
-            currentBodyFatPct: currentBodyFat
+            currentBodyFatPct: currentBodyFat,
+            tdeeOverride: planTDEE
         )
     }
 
@@ -123,6 +143,9 @@ struct GoalPlannerView: View {
                 basisRow("Activity", profile.activityLevel.displayName)
                 basisRow("BMR", "\(Int(bmr)) kcal")
                 basisRow("TDEE", "\(Int(tdee)) kcal")
+                if let adaptive = rawEmpiricalTDEE {
+                    basisRow("Adaptive TDEE", "\(Int(adaptive)) kcal")
+                }
             } else {
                 Label("Profile incomplete — fill out Settings → Profile for a personalized plan.", systemImage: "info.circle")
                     .font(.mCaption)

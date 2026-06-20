@@ -37,6 +37,15 @@ struct CloseGapView: View {
         )
     }
 
+    /// Bundled vegetarian high-protein library, ranked by protein density.
+    /// Always browsable so the view is useful even before the user has logged much.
+    private var curatedPicks: [Food] {
+        guard let profile else { return [] }
+        return allFoods
+            .filter { $0.source == .curated && $0.isAllowed(for: profile) }
+            .sorted { ($0.proteinG / max($0.calories, 1)) > ($1.proteinG / max($1.calories, 1)) }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -80,6 +89,10 @@ struct CloseGapView: View {
                                 .fill(Color.mBgSecondary)
                         )
                     }
+
+                    if !curatedPicks.isEmpty {
+                        curatedSection
+                    }
                 }
                 .padding(.horizontal, Spacing.md)
             }
@@ -96,6 +109,40 @@ struct CloseGapView: View {
                 ScanResultSheet(food: food)
             }
         }
+    }
+
+    // MARK: - Curated picks
+
+    @ViewBuilder
+    private var curatedSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Vegetarian high-protein picks")
+                .font(.mHeadline)
+                .foregroundStyle(Color.mTextPrimary)
+            Text("Lean, egg- & mushroom-free options ranked by protein per calorie.")
+                .font(.mCaption)
+                .foregroundStyle(Color.mTextSecondary)
+
+            ForEach(curatedPicks) { food in
+                Button {
+                    selectedFood = food
+                } label: {
+                    FoodRow(
+                        name: food.name,
+                        detail: "\(Int(food.servingSizeGrams))g serving",
+                        calories: Int(food.calories),
+                        proteinG: Int(food.proteinG),
+                        showChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
+                .fill(Color.mBgSecondary)
+        )
     }
 
     // MARK: - Gap Summary

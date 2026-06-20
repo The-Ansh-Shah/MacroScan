@@ -87,6 +87,11 @@ struct DayView: View {
             VStack(spacing: Spacing.md) {
                 if let profile {
                     macroRingsSection(profile: profile)
+
+                    if isTodayTab && isToday {
+                        QuickLogBar()
+                    }
+
                     WaterCard(date: date, profile: profile)
 
                     if !dayEntries.isEmpty {
@@ -96,10 +101,6 @@ struct DayView: View {
                     if isToday {
                         InsightsCard(date: date, profile: profile, onDeepLink: handleDeepLink)
                     }
-                }
-
-                if isTodayTab && isToday {
-                    QuickLogBar()
                 }
 
                 if dayEntries.isEmpty {

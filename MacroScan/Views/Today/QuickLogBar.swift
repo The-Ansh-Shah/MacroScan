@@ -91,6 +91,15 @@ struct QuickLogBar: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                if case .food(let f) = item {
+                                    Button {
+                                        selectedFood = f
+                                    } label: {
+                                        Label("Adjust amount & log…", systemImage: "slider.horizontal.3")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -106,8 +115,13 @@ struct QuickLogBar: View {
 
     private func handleTap(_ item: QuickLogItem) {
         switch item {
-        case .food(let f): selectedFood = f
-        case .recipe(let r): selectedRecipe = r
+        case .food(let f):
+            // One-tap re-log at one serving; long-press (contextMenu) adjusts the amount.
+            let repo = FoodRepository(modelContext: modelContext)
+            repo.logFood(f, grams: f.servingSizeGrams, mealType: repo.suggestedMealType(), servings: 1)
+            Haptics.logFood()
+        case .recipe(let r):
+            selectedRecipe = r
         }
     }
 }

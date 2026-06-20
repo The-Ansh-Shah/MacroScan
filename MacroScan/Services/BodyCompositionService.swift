@@ -66,6 +66,156 @@ enum BodyCompositionService {
         return TDEEResult(dynamicTDEE: dynamicTDEE)
     }
 
+    // MARK: - Trend weight & adaptive TDEE
+
+    /// Exponentially-weighted moving average of scale weight to filter day-to-day
+    /// water/glycogen noise. Span N≈10 ⇒ α≈0.18. Input may be unsorted; output is
+    /// ascending by date. This is the canonical "current weight" for planning/progress.
+    static func trendWeights(from measurements: [BodyMeasurement], span: Double = 10) -> [(date: Date, lb: Double)] {
+        let sorted = measurements.sorted { $0.recordedAt < $1.recordedAt }
+        guard !sorted.isEmpty else { return [] }
+        let alpha = 2.0 / (span + 1.0)
+        var trend = sorted[0].weightLb
+        var out: [(date: Date, lb: Double)] = []
+        for (i, m) in sorted.enumerated() {
+            trend = i == 0 ? m.weightLb : alpha * m.weightLb + (1 - alpha) * trend
+            out.append((date: m.recordedAt, lb: trend))
+        }
+        return out
+    }
+
+    /// Latest smoothed (trend) weight, or nil if no measurements.
+    static func trendWeight(from measurements: [BodyMeasurement], span: Double = 10) -> Double? {
+        trendWeights(from: measurements, span: span).last?.lb
+    }
+
+    /// Empirically estimated maintenance from the user's own data: mean daily intake
+    /// adjusted by the trend-weight change over the window (3500 kcal ≈ 1 lb).
+    /// `intakeByDay`: (date, kcal) for days actually logged. Returns nil when data is too
+    /// thin (need ≥7 logged days and a trend window spanning ≥7 days) or implausible.
+    static func empiricalTDEE(
+        intakeByDay: [(date: Date, kcal: Double)],
+        trendWeights: [(date: Date, lb: Double)]
+    ) -> Double? {
+        let logged = intakeByDay.filter { $0.kcal > 0 }
+        guard logged.count >= 7, trendWeights.count >= 2 else { return nil }
+        let meanIntake = logged.reduce(0) { $0 + $1.kcal } / Double(logged.count)
+
+        let first = trendWeights.first!
+        let last = trendWeights.last!
+        let days = last.date.timeIntervalSince(first.date) / 86400
+        guard days >= 7 else { return nil }
+        // Loss is positive ⇒ you out-spent intake ⇒ maintenance is higher than intake.
+        let lbChangePerDay = (first.lb - last.lb) / days
+        let tdee = meanIntake + lbChangePerDay * 3500
+        guard tdee > 800, tdee < 6000 else { return nil }
+        return tdee
+    }
+
+    /// Blend empirical TDEE toward the Mifflin estimate by confidence (ramps to full
+    /// empirical at 14 logged days).
+    static func blendedTDEE(empirical: Double?, mifflin: Double?, loggedDays: Int) -> Double? {
+        switch (empirical, mifflin) {
+        case let (e?, m?):
+            let w = min(Double(loggedDays) / 14.0, 1.0)
+            return w * e + (1 - w) * m
+        case let (e?, nil): return e
+        case let (nil, m?): return m
+        default: return nil
+        }
+    }
+
+    // MARK: - Goal projection
+
+    struct GoalProjection {
+        enum Status { case onTrack, ahead, behind, wrongDirection, noData }
+        let status: Status
+        let observedRateLbPerWeek: Double   // negative = losing
+        let requiredRateLbPerWeek: Double   // negative = need to lose
+        let etaDate: Date?                  // when target reached at observed rate
+        let correctedDailyCalories: Double? // calories to hit target by goal date
+        let currentTrendLb: Double
+    }
+
+    /// Project a weight goal from the observed trend-weight slope (least-squares over the
+    /// last 28 days) and, when available, empirical TDEE for a corrective calorie target.
+    static func projectGoal(
+        goal: WeightGoal,
+        trendWeights: [(date: Date, lb: Double)],
+        empiricalTDEE: Double?,
+        now: Date = Date()
+    ) -> GoalProjection {
+        guard let target = goal.targetWeightLb, let last = trendWeights.last else {
+            return GoalProjection(status: .noData, observedRateLbPerWeek: 0, requiredRateLbPerWeek: 0,
+                                  etaDate: nil, correctedDailyCalories: nil,
+                                  currentTrendLb: trendWeights.last?.lb ?? goal.startingWeightLb)
+        }
+        let current = last.lb
+        let remaining = target - current   // negative ⇒ need to lose
+
+        let cutoff = now.addingTimeInterval(-28 * 86400)
+        let recent = trendWeights.filter { $0.date >= cutoff }
+        let observedPerDay = slopeLbPerDay(recent) ?? slopeLbPerDay(trendWeights) ?? 0
+        let observedPerWeek = observedPerDay * 7
+
+        let daysRemaining = max(1.0, goal.targetDate.timeIntervalSince(now) / 86400)
+        let requiredPerDay = remaining / daysRemaining
+        let requiredPerWeek = requiredPerDay * 7
+
+        var eta: Date? = nil
+        if abs(observedPerDay) > 0.0005, (remaining < 0) == (observedPerDay < 0), abs(remaining) > 0.05 {
+            let daysToTarget = remaining / observedPerDay
+            if daysToTarget > 0 { eta = now.addingTimeInterval(daysToTarget * 86400) }
+        }
+
+        var corrected: Double? = nil
+        if let tdee = empiricalTDEE {
+            corrected = tdee + requiredPerDay * 3500   // requiredPerDay negative ⇒ deficit
+        }
+
+        let status: GoalProjection.Status
+        if abs(remaining) <= 0.1 {
+            status = .onTrack
+        } else if abs(observedPerDay) < 0.0005 || ((remaining < 0) != (observedPerWeek < 0)) {
+            status = .wrongDirection   // stalled or moving away from target
+        } else {
+            let diff = observedPerWeek - requiredPerWeek
+            if abs(diff) <= 0.1 {
+                status = .onTrack
+            } else if (remaining < 0 && observedPerWeek < requiredPerWeek) ||
+                      (remaining > 0 && observedPerWeek > requiredPerWeek) {
+                status = .ahead
+            } else {
+                status = .behind
+            }
+        }
+
+        return GoalProjection(
+            status: status,
+            observedRateLbPerWeek: observedPerWeek,
+            requiredRateLbPerWeek: requiredPerWeek,
+            etaDate: eta,
+            correctedDailyCalories: corrected,
+            currentTrendLb: current
+        )
+    }
+
+    /// Least-squares slope (lb/day) over (date, lb) points.
+    private static func slopeLbPerDay(_ points: [(date: Date, lb: Double)]) -> Double? {
+        guard points.count >= 2 else { return nil }
+        let t0 = points[0].date.timeIntervalSince1970
+        let xs = points.map { ($0.date.timeIntervalSince1970 - t0) / 86400 }
+        let ys = points.map { $0.lb }
+        let n = Double(points.count)
+        let sumX = xs.reduce(0, +)
+        let sumY = ys.reduce(0, +)
+        let sumXY = zip(xs, ys).reduce(0) { $0 + $1.0 * $1.1 }
+        let sumXX = xs.reduce(0) { $0 + $1 * $1 }
+        let denom = n * sumXX - sumX * sumX
+        guard abs(denom) > 1e-9 else { return nil }
+        return (n * sumXY - sumX * sumY) / denom
+    }
+
     // MARK: - Body Fat Estimation (Navy Method)
 
     enum BodyFatEstimationError: Error, LocalizedError {
@@ -147,7 +297,8 @@ enum BodyCompositionService {
         currentWeightLb: Double,
         targetWeightLb: Double,
         targetDate: Date,
-        currentBodyFatPct: Double? = nil
+        currentBodyFatPct: Double? = nil,
+        tdeeOverride: Double? = nil
     ) -> DeficitPlan {
         let today = Calendar.current.startOfDay(for: Date())
         let targetDay = Calendar.current.startOfDay(for: targetDate)
@@ -158,8 +309,8 @@ enum BodyCompositionService {
 
         var warnings: [SafetyWarning] = []
 
-        // TDEE (may be nil if profile incomplete)
-        guard let tdee = tdee(from: profile, currentWeightLb: currentWeightLb) else {
+        // TDEE — prefer the empirical/adaptive estimate when supplied, else Mifflin-St Jeor.
+        guard let tdee = tdeeOverride ?? tdee(from: profile, currentWeightLb: currentWeightLb) else {
             return DeficitPlan(
                 dailyCalorieTarget: profile.calorieTarget,
                 dailyProteinTargetG: profile.proteinTargetG,
