@@ -7,12 +7,7 @@ struct RecipesView: View {
     private var recipes: [Recipe]
 
     @State private var searchQuery: String = ""
-    @State private var activeSheet: ActiveSheet?
-
-    private enum ActiveSheet: Identifiable {
-        case builder, generator
-        var id: Int { self == .builder ? 0 : 1 }
-    }
+    @State private var showingGenerator = false
 
     private var sorted: [Recipe] {
         recipes.sorted { ($0.isFavorite ? 0 : 1) < ($1.isFavorite ? 0 : 1) }
@@ -30,9 +25,9 @@ struct RecipesView: View {
                 if recipes.isEmpty {
                     EmptyStateView(
                         symbol: "book.closed",
-                        message: "No recipes yet.\nCombine foods into a meal you can log with one tap.",
-                        buttonTitle: "New Recipe",
-                        action: { activeSheet = .builder }
+                        message: "No recipes yet.\nGenerate one with AI to get started.",
+                        buttonTitle: "Generate a recipe",
+                        action: { showingGenerator = true }
                     )
                 } else {
                     List {
@@ -75,27 +70,15 @@ struct RecipesView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button {
-                            activeSheet = .builder
-                        } label: {
-                            Label("New Recipe", systemImage: "square.and.pencil")
-                        }
-                        Button {
-                            activeSheet = .generator
-                        } label: {
-                            Label("Generate with AI", systemImage: "sparkles")
-                        }
+                    Button {
+                        showingGenerator = true
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .builder: RecipeBuilderView()
-                case .generator: GenerateRecipeSheet()
-                }
+            .sheet(isPresented: $showingGenerator) {
+                GenerateRecipeSheet()
             }
         }
     }

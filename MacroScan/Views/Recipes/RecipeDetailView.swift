@@ -7,9 +7,13 @@ struct RecipeDetailView: View {
 
     let recipe: Recipe
 
-    @State private var showingLogSheet = false
-    @State private var showingEditor = false
+    @State private var activeSheet: ActiveSheet?
     @State private var showingDeleteConfirm = false
+
+    private enum ActiveSheet: Identifiable {
+        case log, edit
+        var id: Int { self == .log ? 0 : 1 }
+    }
 
     var body: some View {
         List {
@@ -82,10 +86,10 @@ struct RecipeDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button { showingLogSheet = true } label: {
+                    Button { activeSheet = .log } label: {
                         Label("Log This", systemImage: "plus.circle")
                     }
-                    Button { showingEditor = true } label: {
+                    Button { activeSheet = .edit } label: {
                         Label("Edit", systemImage: "pencil")
                     }
                     Button(role: .destructive) { showingDeleteConfirm = true } label: {
@@ -96,11 +100,11 @@ struct RecipeDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingLogSheet) {
-            LogRecipeSheet(recipe: recipe)
-        }
-        .sheet(isPresented: $showingEditor) {
-            RecipeBuilderView(existingRecipe: recipe)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .log: LogRecipeSheet(recipe: recipe)
+            case .edit: RecipeBuilderView(existingRecipe: recipe)
+            }
         }
         .alert("Delete Recipe?", isPresented: $showingDeleteConfirm) {
             Button("Delete", role: .destructive) {

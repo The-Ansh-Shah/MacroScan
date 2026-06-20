@@ -28,7 +28,7 @@ enum SeedLibrary {
         }
 
         for r in recipeSpecs {
-            let recipe = Recipe(name: r.name, notes: r.note, totalServings: r.servings)
+            let recipe = Recipe(name: r.name, notes: r.note, instructions: r.instructions, totalServings: r.servings)
             context.insert(recipe)
             for (idx, item) in r.items.enumerated() {
                 guard let food = byName[item.foodName] else { continue }
@@ -103,24 +103,30 @@ enum SeedLibrary {
         let name: String
         let servings: Double
         let note: String?
+        let instructions: String
         let items: [RecipeItem]
     }
 
     private static let recipeSpecs: [RecipeSpec] = [
         RecipeSpec(name: "High-Protein Tofu Bowl", servings: 2, note: "Vegetarian high-protein pick",
+                   instructions: "1. Press and cube the tofu, then pan-sear until golden.\n2. Steam or microwave the edamame.\n3. Toss together, sprinkle the nutritional yeast, and season to taste.",
                    items: [RecipeItem(foodName: "Extra-firm tofu", grams: 300),
                            RecipeItem(foodName: "Edamame (shelled)", grams: 100),
                            RecipeItem(foodName: "Nutritional yeast", grams: 16)]),
         RecipeSpec(name: "Chickpea Pasta & Lentils", servings: 3, note: "Iron + fiber",
+                   instructions: "1. Boil the chickpea pasta per package directions, then drain.\n2. Warm the cooked lentils.\n3. Combine, add a sauce of your choice, and season.",
                    items: [RecipeItem(foodName: "Chickpea pasta (dry)", grams: 170),
                            RecipeItem(foodName: "Cooked lentils", grams: 150)]),
         RecipeSpec(name: "Greek Yogurt Protein Bowl", servings: 1, note: "B12 + lean protein",
+                   instructions: "1. Spoon the yogurt into a bowl.\n2. Top with pumpkin seeds (and fruit if you like).",
                    items: [RecipeItem(foodName: "Nonfat Greek yogurt", grams: 250),
                            RecipeItem(foodName: "Pumpkin seeds", grams: 15)]),
         RecipeSpec(name: "Tempeh & Black Bean Bowl", servings: 3, note: "Iron + fiber",
+                   instructions: "1. Steam the tempeh 8–10 min, then cube and pan-fry until browned.\n2. Warm the black beans.\n3. Combine over rice or greens and season.",
                    items: [RecipeItem(foodName: "Tempeh", grams: 300),
                            RecipeItem(foodName: "Cooked black beans", grams: 300)]),
         RecipeSpec(name: "Cottage Cheese Snack Plate", servings: 1, note: "Lean protein-per-calorie snack",
+                   instructions: "1. Add the cottage cheese to a bowl.\n2. Top with the roasted chickpeas.\n3. Finish with salt, pepper, or hot sauce.",
                    items: [RecipeItem(foodName: "Low-fat cottage cheese", grams: 200),
                            RecipeItem(foodName: "Roasted chickpeas (snack)", grams: 30)]),
     ]
