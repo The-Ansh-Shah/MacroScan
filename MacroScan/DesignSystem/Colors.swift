@@ -106,3 +106,27 @@ extension UIColor {
     }
 }
 #endif
+
+// MARK: - Card surface & section styling
+
+extension View {
+    /// Soft, elevated card surface — a continuous-corner squircle filled with
+    /// `mBgSecondary` plus a subtle drop shadow. Drop-in replacement for the legacy
+    /// `.background(RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius).fill(Color.mBgSecondary))`.
+    /// Callers keep their own padding.
+    func mCard(cornerRadius: CGFloat = DesignConstants.cardCornerRadius) -> some View {
+        self.background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.mBgSecondary)
+                .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 4)
+        )
+    }
+
+    /// Section-title text styling — confident type, primary color, leading-aligned.
+    func mSectionTitle() -> some View {
+        self
+            .font(.mTitle3)
+            .foregroundStyle(Color.mTextPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
