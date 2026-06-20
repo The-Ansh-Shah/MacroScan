@@ -157,7 +157,7 @@ enum NotificationService {
             content: content,
             trigger: trigger
         )
-        center.add(request)
+        try? await center.add(request)
     }
 
     private static func activityNudgeBody(steps: Int, target: Int) -> String {
