@@ -237,6 +237,7 @@ struct RecipeDTO: Codable {
     var exportID: UUID
     var name: String
     var notes: String?
+    var instructions: String?
     var totalServings: Double
     var ingredients: [RecipeIngredientDTO]
     var createdAt: Date
@@ -248,6 +249,7 @@ struct RecipeDTO: Codable {
         self.exportID = recipe.exportID
         self.name = recipe.name
         self.notes = recipe.notes
+        self.instructions = recipe.instructions
         self.totalServings = recipe.totalServings
         self.ingredients = recipe.ingredients.map(RecipeIngredientDTO.init)
         self.createdAt = recipe.createdAt
@@ -257,7 +259,7 @@ struct RecipeDTO: Codable {
     }
 
     func toModel(foodMap: [UUID: Food]) -> Recipe {
-        let recipe = Recipe(name: name, notes: notes, totalServings: totalServings, isFavorite: isFavorite)
+        let recipe = Recipe(name: name, notes: notes, instructions: instructions ?? "", totalServings: totalServings, isFavorite: isFavorite)
         recipe.exportID = exportID
         recipe.createdAt = createdAt
         recipe.lastUsedAt = lastUsedAt

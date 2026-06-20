@@ -5,6 +5,8 @@ import SwiftData
 final class Recipe {
     var name: String
     var notes: String?
+    /// Step-by-step preparation instructions (newline-separated). Default "" for migration.
+    var instructions: String = ""
     var totalServings: Double
     @Relationship(deleteRule: .cascade, inverse: \RecipeIngredient.recipe)
     var ingredients: [RecipeIngredient]
@@ -36,12 +38,14 @@ final class Recipe {
     init(
         name: String,
         notes: String? = nil,
+        instructions: String = "",
         totalServings: Double = 1,
         ingredients: [RecipeIngredient] = [],
         isFavorite: Bool = false
     ) {
         self.name = name
         self.notes = notes
+        self.instructions = instructions
         self.totalServings = totalServings
         self.ingredients = ingredients
         self.createdAt = Date()

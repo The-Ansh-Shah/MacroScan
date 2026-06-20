@@ -62,6 +62,7 @@ actor AIVisionService {
         let name: String
         let totalServings: Double
         let notes: String?
+        let instructions: [String]
         let ingredients: [GeneratedRecipeIngredient]
     }
 
@@ -73,7 +74,9 @@ actor AIVisionService {
         isVegetarian: Bool,
         excludedIngredients: [String],
         targetCalories: Double?,
-        targetProtein: Double?
+        targetProtein: Double?,
+        previousRecipeJSON: String? = nil,
+        refinement: String? = nil
     ) async throws -> GeneratedRecipe {
         let backoffs: [UInt64] = [0, 1_000_000_000, 3_000_000_000, 8_000_000_000]
         var lastError: Error?
@@ -88,7 +91,9 @@ actor AIVisionService {
                     isVegetarian: isVegetarian,
                     excludedIngredients: excludedIngredients,
                     targetCalories: targetCalories,
-                    targetProtein: targetProtein
+                    targetProtein: targetProtein,
+                    previousRecipeJSON: previousRecipeJSON,
+                    refinement: refinement
                 )
             } catch let error as AIError {
                 lastError = error
@@ -108,7 +113,9 @@ actor AIVisionService {
         isVegetarian: Bool,
         excludedIngredients: [String],
         targetCalories: Double?,
-        targetProtein: Double?
+        targetProtein: Double?,
+        previousRecipeJSON: String?,
+        refinement: String?
     ) async throws -> GeneratedRecipe {
         let exclusions = excludedIngredients.isEmpty ? "none" : excludedIngredients.joined(separator: ", ")
         let dietLine = isVegetarian
@@ -129,18 +136,34 @@ actor AIVisionService {
             ? "The user did not give extra keywords; pick something tasty and balanced."
             : "User request / cuisine / keywords: \(keywords)."
 
+        let trimmedRefinement = refinement?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let isRefine = previousRecipeJSON != nil && !trimmedRefinement.isEmpty
+        let refineBlock: String
+        if let previous = previousRecipeJSON, isRefine {
+            refineBlock = """
+            Here is the current recipe as JSON:
+            \(previous)
+            Revise it per this request: "\(trimmedRefinement)". Keep what already works; return the COMPLETE revised recipe.
+
+            """
+        } else {
+            refineBlock = ""
+        }
+
         let prompt = """
         You are designing one vegetarian recipe.
         \(dietLine)
         HARD CONSTRAINT: do NOT include any of these excluded ingredients: \(exclusions).
         \(keywordLine)
-        \(goalBlock)Provide realistic ingredient amounts in grams, and the macros for EACH ingredient AT that gram amount (not per 100g).
+        \(goalBlock)\(refineBlock)Provide realistic ingredient amounts in grams, and ACCURATE macros for EACH ingredient AT that gram amount (not per 100g), using standard food-composition values. Each ingredient's calories MUST be consistent with its macros: calories ≈ 4*protein_g + 4*carbs_g + 9*fat_g (within ~10%). Double-check every number.
+        Also provide clear step-by-step preparation instructions.
         Do NOT include any micronutrients.
         Return ONLY valid JSON matching this exact schema:
         {
           "name": "string",
           "total_servings": number,
           "notes": "string or null",
+          "instructions": ["step 1", "step 2"],
           "ingredients": [
             {
               "name": "string",
@@ -155,7 +178,7 @@ actor AIVisionService {
         }
         """
 
-        let data = try await postGemini(parts: [["text": prompt]], temperature: 0.6)
+        let data = try await postGemini(parts: [["text": prompt]], temperature: isRefine ? 0.4 : 0.6)
         return try parseRecipeResponse(data)
     }
 
@@ -189,6 +212,7 @@ actor AIVisionService {
             name: result.name,
             totalServings: result.totalServings > 0 ? result.totalServings : 1,
             notes: result.notes,
+            instructions: result.instructions ?? [],
             ingredients: ingredients
         )
     }
@@ -454,12 +478,14 @@ private struct AIRecipeResult: Decodable, Sendable {
     let name: String
     let totalServings: Double
     let notes: String?
+    let instructions: [String]?
     let ingredients: [Ingredient]
 
     enum CodingKeys: String, CodingKey {
         case name
         case totalServings = "total_servings"
         case notes
+        case instructions
         case ingredients
     }
 

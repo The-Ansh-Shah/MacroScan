@@ -29,6 +29,14 @@ struct RecipeDetailView: View {
                 Text("Ingredients")
             }
 
+            if !recipe.instructions.isEmpty {
+                Section("Instructions") {
+                    Text(recipe.instructions)
+                        .font(.mBody)
+                        .foregroundStyle(Color.mTextPrimary)
+                }
+            }
+
             if let notes = recipe.notes, !notes.isEmpty {
                 Section("Notes") {
                     Text(notes)

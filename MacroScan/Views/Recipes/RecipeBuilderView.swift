@@ -10,6 +10,7 @@ struct RecipeBuilderView: View {
     @State private var name: String = ""
     @State private var totalServings: Double = 1
     @State private var notes: String = ""
+    @State private var instructions: String = ""
     @State private var ingredients: [IngredientItem] = []
     @State private var showingFoodSearch = false
     @State private var pendingFoodForGrams: Food?
@@ -87,8 +88,14 @@ struct RecipeBuilderView: View {
                     Text("Ingredients (\(ingredients.count))")
                 }
 
+                Section("Instructions (optional)") {
+                    TextField("Step-by-step preparation", text: $instructions, axis: .vertical)
+                        .font(.mBody)
+                        .lineLimit(3...12)
+                }
+
                 Section("Notes (optional)") {
-                    TextField("e.g. prep instructions", text: $notes, axis: .vertical)
+                    TextField("notes", text: $notes, axis: .vertical)
                         .font(.mBody)
                         .lineLimit(2...4)
                 }
@@ -197,6 +204,7 @@ struct RecipeBuilderView: View {
         name = recipe.name
         totalServings = recipe.totalServings
         notes = recipe.notes ?? ""
+        instructions = recipe.instructions
         ingredients = recipe.ingredients
             .sorted(by: { $0.order < $1.order })
             .compactMap { ing in
@@ -211,11 +219,13 @@ struct RecipeBuilderView: View {
 
         let repo = FoodRepository(modelContext: modelContext)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedInstructions = instructions.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let existing = existingRecipe {
             existing.name = trimmedName
             existing.totalServings = totalServings
             existing.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+            existing.instructions = trimmedInstructions
             for ing in existing.ingredients {
                 modelContext.delete(ing)
             }
@@ -226,6 +236,7 @@ struct RecipeBuilderView: View {
             let recipe = Recipe(
                 name: trimmedName,
                 notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
+                instructions: trimmedInstructions,
                 totalServings: totalServings
             )
             recipe.ingredients = ingredients.enumerated().map { idx, item in
