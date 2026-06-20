@@ -15,9 +15,9 @@ struct AddFoodSheet: View {
     let onPhoto: () -> Void
     #endif
     let onRecipes: () -> Void
-    let onGenerateRecipe: () -> Void
     let onQuickAdd: () -> Void
     let onManual: () -> Void
+    let onGenerateRecipe: () -> Void
 
     var body: some View {
         NavigationStack {
