@@ -42,10 +42,7 @@ enum BodyCompositionService {
     // MARK: - Dynamic TDEE
 
     struct TDEEResult {
-        let staticTDEE: Double
         let dynamicTDEE: Double?
-        let activeEnergyToday: Double?
-        let basalEnergyToday: Double?
     }
 
     static func todaysTDEE(
@@ -54,9 +51,9 @@ enum BodyCompositionService {
         activeEnergy: Double?,
         basalEnergy: Double?
     ) -> TDEEResult? {
-        guard let staticVal = tdee(from: profile, currentWeightLb: currentWeightLb) else { return nil }
+        guard tdee(from: profile, currentWeightLb: currentWeightLb) != nil else { return nil }
         guard let bmrVal = bmr(from: profile, currentWeightLb: currentWeightLb) else {
-            return TDEEResult(staticTDEE: staticVal, dynamicTDEE: nil, activeEnergyToday: nil, basalEnergyToday: nil)
+            return TDEEResult(dynamicTDEE: nil)
         }
 
         var dynamicTDEE: Double? = nil
@@ -66,12 +63,7 @@ enum BodyCompositionService {
             dynamicTDEE = bmrVal + active
         }
 
-        return TDEEResult(
-            staticTDEE: staticVal,
-            dynamicTDEE: dynamicTDEE,
-            activeEnergyToday: activeEnergy,
-            basalEnergyToday: basalEnergy
-        )
+        return TDEEResult(dynamicTDEE: dynamicTDEE)
     }
 
     // MARK: - Body Fat Estimation (Navy Method)

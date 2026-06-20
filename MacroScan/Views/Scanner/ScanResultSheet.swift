@@ -441,7 +441,7 @@ struct ScanResultSheet: View {
     }
 
     private func setupDefaults() {
-        guessMealType()
+        selectedMealType = .currentGuess
         if food.servingSizeGrams > 0 {
             useServings = true
             amountText = "1"
@@ -478,16 +478,6 @@ struct ScanResultSheet: View {
         editIron      = origIron
         editVitaminD  = origVitD
         editVitaminB12 = origVitB12
-    }
-
-    private func guessMealType() {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<11: selectedMealType = .breakfast
-        case 11..<15: selectedMealType = .lunch
-        case 15..<21: selectedMealType = .dinner
-        default: selectedMealType = .snack
-        }
     }
 }
 

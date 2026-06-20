@@ -211,7 +211,6 @@ actor AIVisionService {
         }
 
         guard let candidates = json["candidates"] as? [[String: Any]], !candidates.isEmpty else {
-            let raw = String(data: data, encoding: .utf8) ?? ""
             throw AIError.emptyResponse
         }
 

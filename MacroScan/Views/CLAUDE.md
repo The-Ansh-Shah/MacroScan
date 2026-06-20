@@ -42,7 +42,6 @@
 - `ManualFoodForm.swift` — Create a Food (per-serving macros) and log it.
 - `QuickAddSheet.swift` — Calories-only quick log (macros optional); reused for editing via `editingEntry`.
 - `EditLogEntrySheet.swift` — Edit existing entry's amount/meal/notes (not the Food).
-- `NaturalLanguageEntrySheet.swift` — Free-text → parsed foods → confirm sheet.
 - `AIFallbackSheet.swift` — Manual form shown when AI vision fails; preserves photo (UIKit-only).
 
 ### Recipes/ — multi-food recipes

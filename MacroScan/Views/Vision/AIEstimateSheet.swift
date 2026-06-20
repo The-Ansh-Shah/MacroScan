@@ -251,7 +251,7 @@ struct AIEstimateSheet: View {
                 carbsG = String(format: "%.1f", result.carbsG)
                 fatG = String(format: "%.1f", result.fatG)
                 fiberG = String(format: "%.1f", result.fiberG)
-                guessMealType()
+                selectedMealType = .currentGuess
                 phase = .ready
             }
         } catch {
@@ -314,16 +314,6 @@ struct AIEstimateSheet: View {
         )
         Haptics.logFood()
         dismiss()
-    }
-
-    private func guessMealType() {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<11: selectedMealType = .breakfast
-        case 11..<15: selectedMealType = .lunch
-        case 15..<21: selectedMealType = .dinner
-        default: selectedMealType = .snack
-        }
     }
 }
 #endif

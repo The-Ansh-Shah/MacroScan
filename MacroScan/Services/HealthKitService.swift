@@ -22,7 +22,6 @@ actor HealthKitService {
             HKQuantityType(.activeEnergyBurned),
             HKQuantityType(.basalEnergyBurned),
             HKQuantityType(.stepCount),
-            HKQuantityType(.dietaryWater),
         ]
 
         let writeTypes: Set<HKSampleType> = [
@@ -104,7 +103,7 @@ actor HealthKitService {
         return Int(sum)
     }
 
-    // MARK: - Read/Write: Water
+    // MARK: - Write: Water
 
     func writeWater(ml: Double, recordedAt: Date) async throws {
         guard isAvailable else { return }
@@ -112,29 +111,6 @@ actor HealthKitService {
         let qty = HKQuantity(unit: .literUnit(with: .milli), doubleValue: ml)
         let sample = HKQuantitySample(type: type, quantity: qty, start: recordedAt, end: recordedAt)
         try await store.save(sample)
-    }
-
-    func waterSamples(forDate date: Date) async throws -> [(ml: Double, recordedAt: Date, source: String)] {
-        guard isAvailable else { return [] }
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: date)
-        let end = cal.date(byAdding: .day, value: 1, to: start)!
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
-        let type = HKQuantityType(.dietaryWater)
-        let healthStore = store
-
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
-                if let error { continuation.resume(throwing: error); return }
-                let results = (samples as? [HKQuantitySample] ?? []).map { s in
-                    (ml: s.quantity.doubleValue(for: .literUnit(with: .milli)),
-                     recordedAt: s.startDate,
-                     source: s.sourceRevision.source.bundleIdentifier)
-                }
-                continuation.resume(returning: results)
-            }
-            healthStore.execute(query)
-        }
     }
 
     // MARK: - Write: Nutrition
@@ -217,7 +193,6 @@ actor HealthKitService {
     func basalEnergyBurned(forDate: Date) async throws -> Double { 0 }
     func stepCount(forDate: Date) async throws -> Int { 0 }
     func writeWater(ml: Double, recordedAt: Date) async throws {}
-    func waterSamples(forDate: Date) async throws -> [(ml: Double, recordedAt: Date, source: String)] { [] }
     func writeNutrition(_ entry: LogEntry) async throws {}
     func writeBodyMeasurement(_ measurement: BodyMeasurement) async throws {}
 }

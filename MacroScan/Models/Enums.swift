@@ -27,6 +27,16 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
         case .snack: return "leaf"
         }
     }
+
+    /// Best-guess meal type for the current time of day.
+    static var currentGuess: MealType {
+        switch Calendar.current.component(.hour, from: Date()) {
+        case 5..<11: return .breakfast
+        case 11..<15: return .lunch
+        case 15..<21: return .dinner
+        default: return .snack
+        }
+    }
 }
 
 enum DietGoal: String, Codable, CaseIterable {

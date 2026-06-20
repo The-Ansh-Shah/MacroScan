@@ -13,7 +13,6 @@ Native-iOS aesthetic: all type is SF Rounded, layout uses a fixed spacing scale,
 - `FoodRow.swift` — list row: name (+optional verified seal), detail, calories & protein, optional chevron; min height = minTapTarget.
 - `AmountPicker.swift` — segmented Servings/Grams input that keeps the two units in sync; exposes `gramsEaten`/`servingsEaten`.
 - `PrimaryButton.swift` — full-width accent CTA (optional icon); also defines `EmptyStateView` (symbol + message + optional button).
-- `ShimmerModifier.swift` — `.shimmer()` skeleton-loading modifier; also defines `SkeletonRow` placeholder.
 
 ## Rule
 - Every view MUST use these tokens — no inline `Color.blue`, `Font.title`, or magic padding numbers.

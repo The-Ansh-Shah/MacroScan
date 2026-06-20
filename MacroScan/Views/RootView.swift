@@ -31,7 +31,6 @@ struct RootView: View {
         }
         .onAppear {
             ensureUserProfile()
-            migrateDiningHallFoods()
             if let profile = profiles.first, profile.heightIn == nil && profile.ageYears == nil {
                 showingOnboarding = true
             }
@@ -49,16 +48,6 @@ struct RootView: View {
             let profile = UserProfile()
             modelContext.insert(profile)
         }
-    }
-
-    private func migrateDiningHallFoods() {
-        let affected = (try? modelContext.fetch(FetchDescriptor<Food>(
-            predicate: #Predicate { $0.sourceRaw == "diningHall" }
-        ))) ?? []
-        for food in affected {
-            food.sourceRaw = "manual"
-        }
-        if !affected.isEmpty { try? modelContext.save() }
     }
 }
 

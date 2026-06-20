@@ -255,7 +255,7 @@ struct LogRecipeSheet: View {
                     .disabled(servings <= 0)
                 }
             }
-            .onAppear { guessMealType() }
+            .onAppear { selectedMealType = .currentGuess }
         }
     }
 
@@ -280,16 +280,6 @@ struct LogRecipeSheet: View {
         )
         Haptics.logFood()
         dismiss()
-    }
-
-    private func guessMealType() {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<11: selectedMealType = .breakfast
-        case 11..<15: selectedMealType = .lunch
-        case 15..<21: selectedMealType = .dinner
-        default: selectedMealType = .snack
-        }
     }
 
     private func formattedServings(_ value: Double) -> String {

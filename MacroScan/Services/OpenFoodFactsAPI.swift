@@ -2,8 +2,6 @@ import Foundation
 
 /// Open Food Facts free API client — no auth required
 actor OpenFoodFactsAPI {
-    private let baseURL = "https://world.openfoodfacts.org/api/v2/product"
-
     enum OFFError: Error, LocalizedError {
         case productNotFound
         case networkError(Error)
@@ -19,8 +17,7 @@ actor OpenFoodFactsAPI {
     }
 
     /// Free-text search against the OFF product catalog.
-    /// Returns lightweight hits — full Food is materialized on user selection via `lookup(barcode:)`
-    /// or by mapping the search payload directly.
+    /// Maps each search hit directly into a `Food`.
     func search(query: String, limit: Int = 10) async throws -> [Food] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
@@ -45,37 +42,6 @@ actor OpenFoodFactsAPI {
 
         let response = try Self.decodeSearch(data)
         return response.products.map { Self.mapToFood(product: $0, barcode: $0.code) }
-    }
-
-    /// Look up a barcode and return a Food object
-    func lookup(barcode: String) async throws -> Food {
-        let urlString = "\(baseURL)/\(barcode).json"
-        guard let url = URL(string: urlString) else {
-            throw OFFError.invalidData
-        }
-
-        let data: Data
-        do {
-            (data, _) = try await URLSession.shared.data(from: url)
-        } catch {
-            throw OFFError.networkError(error)
-        }
-
-        let response = try Self.decodeResponse(data)
-
-        guard response.status == 1, let product = response.product else {
-            throw OFFError.productNotFound
-        }
-
-        return Self.mapToFood(product: product, barcode: barcode)
-    }
-
-    private nonisolated static func decodeResponse(_ data: Data) throws(OFFError) -> OFFResponse {
-        do {
-            return try JSONDecoder().decode(OFFResponse.self, from: data)
-        } catch {
-            throw OFFError.invalidData
-        }
     }
 
     private nonisolated static func decodeSearch(_ data: Data) throws(OFFError) -> OFFSearchResponse {
@@ -137,11 +103,6 @@ actor OpenFoodFactsAPI {
 }
 
 // MARK: - API Response Types (private)
-
-private struct OFFResponse: Decodable, Sendable {
-    let status: Int
-    let product: OFFProduct?
-}
 
 private struct OFFProduct: Decodable, Sendable {
     let code: String?

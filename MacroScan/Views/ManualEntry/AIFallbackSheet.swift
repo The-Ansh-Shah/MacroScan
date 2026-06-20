@@ -112,7 +112,7 @@ struct AIFallbackSheet: View {
                         .disabled(!isValid)
                 }
             }
-            .onAppear { guessMealType() }
+            .onAppear { selectedMealType = .currentGuess }
         }
     }
 
@@ -162,16 +162,6 @@ struct AIFallbackSheet: View {
         )
         Haptics.logFood()
         dismiss()
-    }
-
-    private func guessMealType() {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<11: selectedMealType = .breakfast
-        case 11..<15: selectedMealType = .lunch
-        case 15..<21: selectedMealType = .dinner
-        default: selectedMealType = .snack
-        }
     }
 }
 #endif

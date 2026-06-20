@@ -32,7 +32,7 @@ struct DayView: View {
     @State private var showingScanner = false
     @State private var showingCloseGap = false
     @State private var showingSearch = false
-    @State private var showingNaturalLanguage = false
+
     @State private var showingRecipes = false
     @State private var showingQuickAdd = false
     @State private var prefilledSearchQuery: String = ""
@@ -177,9 +177,6 @@ struct DayView: View {
                             Label("Snap Photo", systemImage: "camera.fill")
                         }
                         #endif
-                        Button { showingNaturalLanguage = true } label: {
-                            Label("Describe What You Ate", systemImage: "text.magnifyingglass")
-                        }
                         Button { showingRecipes = true } label: {
                             Label("Recipes", systemImage: "book.closed")
                         }
@@ -223,9 +220,6 @@ struct DayView: View {
         }
         .sheet(isPresented: $showingSearch) {
             SearchView(initialQuery: prefilledSearchQuery)
-        }
-        .sheet(isPresented: $showingNaturalLanguage) {
-            NaturalLanguageEntrySheet()
         }
         .sheet(isPresented: $showingRecipes) {
             RecipesView()

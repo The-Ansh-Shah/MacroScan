@@ -61,8 +61,6 @@ actor FatSecretAPI {
             let items = decoded.foodsSearch?.results?.food ?? decoded.foodsSearch?.results?.foodArray ?? []
             return items.prefix(limit).map(Self.mapSearchItem)
         } catch {
-            print("[FatSecret] search decode error: \(error)")
-            print("[FatSecret] raw response: \(String(data: data, encoding: .utf8) ?? "<binary>")")
             throw FatSecretError.decodingError(error)
         }
     }
@@ -80,36 +78,9 @@ actor FatSecretAPI {
         do {
             let decoded = try JSONDecoder().decode(FoodDetailResponse.self, from: data)
             guard let item = decoded.food else { throw FatSecretError.notFound }
-            print("[FatSecret] foodDetail raw: \(String(data: data, encoding: .utf8) ?? "")")
-            let food = Self.mapDetailItem(item)
-            print("[FatSecret] mapped: servingGrams=\(food.servingSizeGrams) cal=\(food.calories) pro=\(food.proteinG) carbs=\(food.carbsG) fat=\(food.fatG)")
-            return food
+            return Self.mapDetailItem(item)
         } catch let e as FatSecretError {
             throw e
-        } catch {
-            print("[FatSecret] foodDetail decode error: \(error)")
-            print("[FatSecret] raw: \(String(data: data, encoding: .utf8) ?? "")")
-            throw FatSecretError.decodingError(error)
-        }
-    }
-
-    // MARK: - Natural Language
-
-    func parseNaturalLanguage(_ text: String) async throws -> [Food] {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
-
-        let params: [String: Any] = [
-            "method": "natural_language_processing",
-            "text": trimmed
-        ]
-
-        let data = try await proxyRequest(params: params)
-
-        do {
-            let decoded = try JSONDecoder().decode(NLPResponse.self, from: data)
-            let items = decoded.naturalLanguageProcessing?.foods ?? []
-            return items.map(Self.mapNLPItem)
         } catch {
             throw FatSecretError.decodingError(error)
         }
@@ -255,27 +226,6 @@ actor FatSecretAPI {
             source: .fatSecret
         )
     }
-
-    private nonisolated static func mapNLPItem(_ item: FSNLPFood) -> Food {
-        let cal = Double(item.calories ?? "0") ?? 0
-        let pro = Double(item.protein ?? "0") ?? 0
-        let carbs = Double(item.carbohydrate ?? "0") ?? 0
-        let fat = Double(item.fat ?? "0") ?? 0
-        let fiber = Double(item.fiber ?? "0") ?? 0
-        let servingGrams = Double(item.metricServingAmount ?? "100") ?? 100
-
-        return Food(
-            name: (item.foodName ?? "Unknown").capitalized,
-            brand: item.brandName,
-            servingSizeGrams: servingGrams,
-            calories: cal,
-            proteinG: pro,
-            carbsG: carbs,
-            fatG: fat,
-            fiberG: fiber,
-            source: .fatSecret
-        )
-    }
 }
 
 // MARK: - Response types
@@ -362,40 +312,6 @@ private struct FSDetailFood: Decodable, Sendable {
 
 private struct FSDetailServings: Decodable, Sendable {
     let serving: [FSServing]?
-}
-
-private struct NLPResponse: Decodable, Sendable {
-    let naturalLanguageProcessing: NLPResult?
-
-    enum CodingKeys: String, CodingKey {
-        case naturalLanguageProcessing = "natural_language_processing"
-    }
-}
-
-private struct NLPResult: Decodable, Sendable {
-    let foods: [FSNLPFood]?
-}
-
-private struct FSNLPFood: Decodable, Sendable {
-    let foodName: String?
-    let brandName: String?
-    let calories: String?
-    let protein: String?
-    let carbohydrate: String?
-    let fat: String?
-    let fiber: String?
-    let metricServingAmount: String?
-
-    enum CodingKeys: String, CodingKey {
-        case foodName = "food_name"
-        case brandName = "brand_name"
-        case calories
-        case protein
-        case carbohydrate
-        case fat
-        case fiber
-        case metricServingAmount = "metric_serving_amount"
-    }
 }
 
 private struct BarcodeLookupResponse: Decodable, Sendable {
