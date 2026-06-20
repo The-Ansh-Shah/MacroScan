@@ -16,9 +16,6 @@ struct MicroBarsView: View {
             )
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 }

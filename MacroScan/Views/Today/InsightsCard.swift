@@ -56,10 +56,7 @@ struct InsightsCard: View {
                 }
             }
             .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
             .overlay(
                 RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
                     .stroke(borderColor, lineWidth: flags.first?.severity == .critical ? 1.5 : 0)

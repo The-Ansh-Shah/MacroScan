@@ -318,10 +318,7 @@ struct SummaryCard: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
     }

@@ -20,24 +20,32 @@ enum SeedLibrary {
     }
 
     private static func seed(into context: ModelContext) {
-        var byName: [String: Food] = [:]
         for spec in foodSpecs {
-            let food = spec.makeFood()
-            context.insert(food)
-            byName[spec.name] = food
+            context.insert(spec.makeFood())
         }
+    }
 
-        for r in recipeSpecs {
-            let recipe = Recipe(name: r.name, notes: r.note, instructions: r.instructions, totalServings: r.servings)
-            context.insert(recipe)
-            for (idx, item) in r.items.enumerated() {
-                guard let food = byName[item.foodName] else { continue }
-                let ing = RecipeIngredient(food: food, grams: item.grams, order: idx)
-                ing.recipe = recipe
-                context.insert(ing)
-                recipe.ingredients.append(ing)
-            }
+    // MARK: - Remove earlier "filler" recipes
+
+    /// Names of placeholder recipes seeded by earlier app versions. AI generation is now
+    /// the recipe path, so these are removed once — but only if the user never used them.
+    private static let legacySeedRecipeNames: Set<String> = [
+        "High-Protein Tofu Bowl",
+        "Chickpea Pasta & Lentils",
+        "Greek Yogurt Protein Bowl",
+        "Tempeh & Black Bean Bowl",
+        "Cottage Cheese Snack Plate",
+    ]
+
+    /// One-time cleanup of the old seeded filler recipes from existing installs.
+    static func removeLegacySeededRecipesIfNeeded(into context: ModelContext) {
+        let key = "didRemoveSeedRecipesV1"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        let recipes = (try? context.fetch(FetchDescriptor<Recipe>())) ?? []
+        for recipe in recipes where legacySeedRecipeNames.contains(recipe.name) && recipe.timesUsed == 0 {
+            context.delete(recipe)
         }
+        UserDefaults.standard.set(true, forKey: key)
     }
 
     // MARK: - Food specs
@@ -94,40 +102,5 @@ enum SeedLibrary {
         FoodSpec(name: "Pumpkin seeds", serving: 30, cal: 151, p: 9, c: 5, f: 13, fiber: 2, iron: 2.5),
         FoodSpec(name: "Roasted chickpeas (snack)", serving: 30, cal: 120, p: 6, c: 18, f: 2, fiber: 5, iron: 1.5),
         FoodSpec(name: "Protein powder (1 scoop)", serving: 32, cal: 120, p: 25, c: 3, f: 1.5, fiber: 1, b12: 1.0),
-    ]
-
-    // MARK: - Recipe specs (built only from seeded foods above)
-
-    private struct RecipeItem { let foodName: String; let grams: Double }
-    private struct RecipeSpec {
-        let name: String
-        let servings: Double
-        let note: String?
-        let instructions: String
-        let items: [RecipeItem]
-    }
-
-    private static let recipeSpecs: [RecipeSpec] = [
-        RecipeSpec(name: "High-Protein Tofu Bowl", servings: 2, note: "Vegetarian high-protein pick",
-                   instructions: "1. Press and cube the tofu, then pan-sear until golden.\n2. Steam or microwave the edamame.\n3. Toss together, sprinkle the nutritional yeast, and season to taste.",
-                   items: [RecipeItem(foodName: "Extra-firm tofu", grams: 300),
-                           RecipeItem(foodName: "Edamame (shelled)", grams: 100),
-                           RecipeItem(foodName: "Nutritional yeast", grams: 16)]),
-        RecipeSpec(name: "Chickpea Pasta & Lentils", servings: 3, note: "Iron + fiber",
-                   instructions: "1. Boil the chickpea pasta per package directions, then drain.\n2. Warm the cooked lentils.\n3. Combine, add a sauce of your choice, and season.",
-                   items: [RecipeItem(foodName: "Chickpea pasta (dry)", grams: 170),
-                           RecipeItem(foodName: "Cooked lentils", grams: 150)]),
-        RecipeSpec(name: "Greek Yogurt Protein Bowl", servings: 1, note: "B12 + lean protein",
-                   instructions: "1. Spoon the yogurt into a bowl.\n2. Top with pumpkin seeds (and fruit if you like).",
-                   items: [RecipeItem(foodName: "Nonfat Greek yogurt", grams: 250),
-                           RecipeItem(foodName: "Pumpkin seeds", grams: 15)]),
-        RecipeSpec(name: "Tempeh & Black Bean Bowl", servings: 3, note: "Iron + fiber",
-                   instructions: "1. Steam the tempeh 8–10 min, then cube and pan-fry until browned.\n2. Warm the black beans.\n3. Combine over rice or greens and season.",
-                   items: [RecipeItem(foodName: "Tempeh", grams: 300),
-                           RecipeItem(foodName: "Cooked black beans", grams: 300)]),
-        RecipeSpec(name: "Cottage Cheese Snack Plate", servings: 1, note: "Lean protein-per-calorie snack",
-                   instructions: "1. Add the cottage cheese to a bowl.\n2. Top with the roasted chickpeas.\n3. Finish with salt, pepper, or hot sauce.",
-                   items: [RecipeItem(foodName: "Low-fat cottage cheese", grams: 200),
-                           RecipeItem(foodName: "Roasted chickpeas (snack)", grams: 30)]),
     ]
 }

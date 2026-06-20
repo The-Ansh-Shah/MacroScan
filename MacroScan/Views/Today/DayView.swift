@@ -459,10 +459,7 @@ struct DayView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
         .task(id: isToday) {
             guard isToday else { return }
             todayStepCount = try? await HealthKitService.shared.stepCount(forDate: Date())

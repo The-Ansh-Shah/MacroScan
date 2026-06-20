@@ -34,19 +34,21 @@ struct TargetBar: View {
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(barColor.opacity(0.2))
-                        .frame(height: DesignConstants.barHeight)
+                    RoundedRectangle(cornerRadius: barHeight / 2, style: .continuous)
+                        .fill(Color.mUnder.opacity(0.16))
+                        .frame(height: barHeight)
 
-                    Capsule()
-                        .fill(barColor)
-                        .frame(width: geometry.size.width * fillRatio, height: DesignConstants.barHeight)
+                    RoundedRectangle(cornerRadius: barHeight / 2, style: .continuous)
+                        .fill(Color.macroGradient(barColor))
+                        .frame(width: geometry.size.width * fillRatio, height: barHeight)
                         .animation(DesignConstants.ringAnimation, value: fillRatio)
                 }
             }
-            .frame(height: DesignConstants.barHeight)
+            .frame(height: barHeight)
         }
     }
+
+    private let barHeight: CGFloat = 10
 }
 
 #Preview {

@@ -85,10 +85,7 @@ struct QuickLogBar: View {
                                 }
                                 .padding(.horizontal, Spacing.sm)
                                 .padding(.vertical, Spacing.xs)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.mBgSecondary)
-                                )
+                                .mCard(cornerRadius: 10)
                             }
                             .buttonStyle(.plain)
                             .contextMenu {

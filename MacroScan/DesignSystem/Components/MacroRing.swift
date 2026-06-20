@@ -24,14 +24,14 @@ struct MacroRing: View {
         VStack(spacing: Spacing.xs) {
             ZStack {
                 Circle()
-                    .stroke(ringColor.opacity(0.2), lineWidth: DesignConstants.ringStrokeWidth)
+                    .stroke(Color.mUnder.opacity(0.18), lineWidth: ringStroke)
 
                 Circle()
                     .trim(from: 0, to: displayRatio)
                     .stroke(
-                        ringColor,
+                        Color.macroGradient(ringColor),
                         style: StrokeStyle(
-                            lineWidth: DesignConstants.ringStrokeWidth,
+                            lineWidth: ringStroke,
                             lineCap: .round
                         )
                     )
@@ -40,7 +40,7 @@ struct MacroRing: View {
 
                 VStack(spacing: 1) {
                     Text("\(Int(current))")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(current > target && isOverBad ? Color.mOver : Color.mTextPrimary)
                     Text("/ \(Int(target))")
@@ -58,6 +58,8 @@ struct MacroRing: View {
                 .foregroundStyle(Color.mTextSecondary)
         }
     }
+
+    private let ringStroke: CGFloat = 14
 }
 
 #Preview {

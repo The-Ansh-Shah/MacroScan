@@ -163,7 +163,11 @@ struct AIEstimateSheet: View {
             .resizable()
             .aspectRatio(contentMode: .fill)
             .frame(maxWidth: 220, maxHeight: 220)
-            .clipShape(RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius, style: .continuous)
+                    .strokeBorder(Color.mTextTertiary.opacity(0.15), lineWidth: 0.5)
+            )
     }
 
     @ViewBuilder
@@ -184,6 +188,11 @@ struct AIEstimateSheet: View {
                 .monospacedDigit()
         }
         .foregroundStyle(color)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            Capsule().fill(color.opacity(0.12))
+        )
     }
 
     @ViewBuilder

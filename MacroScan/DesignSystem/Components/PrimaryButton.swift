@@ -23,9 +23,23 @@ struct PrimaryButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: DesignConstants.minTapTarget)
             .foregroundStyle(.white)
-            .background(Color.mAccent)
-            .clipShape(RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius))
+            .background(
+                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius, style: .continuous)
+                    .fill(Color.mAccentGradient)
+            )
+            .shadow(color: Color.mAccent.opacity(0.30), radius: 12, x: 0, y: 6)
         }
+        .buttonStyle(PressableButtonStyle())
+    }
+}
+
+/// Tactile press feedback: a gentle spring scale + opacity dip on press.
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(DesignConstants.springAnimation, value: configuration.isPressed)
     }
 }
 

@@ -190,10 +190,7 @@ private struct TrendsView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func statItem(value: String, total: Int, label: String) -> some View {
@@ -244,10 +241,7 @@ private struct TrendsView: View {
             .frame(height: 180)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     @ViewBuilder
@@ -280,10 +274,7 @@ private struct TrendsView: View {
             .frame(height: 180)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     @ViewBuilder
@@ -306,10 +297,7 @@ private struct TrendsView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func summaryItem(label: String, value: String) -> some View {

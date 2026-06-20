@@ -64,10 +64,7 @@ struct AddFoodSheet: View {
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: DesignConstants.minTapTarget)
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
         }
         .buttonStyle(.plain)
     }
@@ -105,10 +102,7 @@ struct AddFoodSheet: View {
             .foregroundStyle(Color.mAccent)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 88)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
         }
         .buttonStyle(.plain)
     }
@@ -142,10 +136,7 @@ struct AddFoodSheet: View {
                 action: onManual
             )
         }
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func secondaryRow(

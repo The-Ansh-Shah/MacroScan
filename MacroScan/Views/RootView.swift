@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
@@ -29,9 +32,12 @@ struct RootView: View {
                     Label("Settings", systemImage: "gearshape")
                 }
         }
+        .tint(Color.mAccent)
         .onAppear {
+            configureTabBarAppearance()
             ensureUserProfile()
             SeedLibrary.seedIfNeeded(into: modelContext)
+            SeedLibrary.removeLegacySeededRecipesIfNeeded(into: modelContext)
             if let profile = profiles.first, profile.heightIn == nil && profile.ageYears == nil {
                 showingOnboarding = true
             }
@@ -56,6 +62,16 @@ struct RootView: View {
             let profile = UserProfile()
             modelContext.insert(profile)
         }
+    }
+
+    /// Apply a clean, translucent tab bar that keeps the system blur.
+    private func configureTabBarAppearance() {
+        #if canImport(UIKit)
+        let appearance = UITabBarAppearance()
+        appearance.configureWithDefaultBackground()
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        #endif
     }
 }
 

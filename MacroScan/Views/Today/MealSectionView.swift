@@ -49,10 +49,7 @@ struct MealSectionView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
         .confirmationDialog(
             entryActionTarget?.displayName ?? "Log entry",
             isPresented: .init(

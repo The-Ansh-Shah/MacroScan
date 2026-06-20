@@ -40,14 +40,20 @@ struct FoodRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: Spacing.xs) {
-                Text("\(calories) cal")
-                    .font(.mSubheadline)
-                    .foregroundStyle(Color.mTextPrimary)
+            VStack(alignment: .trailing, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(calories)")
+                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.mTextPrimary)
+                    Text("cal")
+                        .font(.mCaption)
+                        .foregroundStyle(Color.mTextSecondary)
+                }
 
                 Text("\(proteinG)g protein")
                     .font(.mCaption)
-                    .foregroundStyle(Color.mTextSecondary)
+                    .foregroundStyle(Color.mTextTertiary)
             }
 
             if showChevron {

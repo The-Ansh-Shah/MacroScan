@@ -38,6 +38,7 @@ struct RecipeDetailView: View {
                     Text(recipe.instructions)
                         .font(.mBody)
                         .foregroundStyle(Color.mTextPrimary)
+                        .lineSpacing(3)
                 }
             }
 

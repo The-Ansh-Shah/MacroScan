@@ -115,6 +115,7 @@ struct SearchView: View {
                 Text("Powered by FatSecret")
                     .font(.mCaption)
                     .foregroundStyle(Color.mTextTertiary)
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.xs)
             }
         }
@@ -124,8 +125,12 @@ struct SearchView: View {
     private func resultRow(_ result: FoodSearchService.Result) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: sourceIcon(result.source))
+                .font(.mCaption)
                 .foregroundStyle(sourceColor(result.source))
-                .frame(width: 24)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle().fill(sourceColor(result.source).opacity(0.12))
+                )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(result.food.name)

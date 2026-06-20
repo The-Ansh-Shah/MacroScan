@@ -84,10 +84,7 @@ struct GoalProgressView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func statusStyle(_ s: BodyCompositionService.GoalProjection.Status) -> (label: String, color: Color, icon: String) {
@@ -158,10 +155,7 @@ struct GoalProgressView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     @ViewBuilder
@@ -207,10 +201,7 @@ struct GoalProgressView: View {
             .frame(height: 220)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private struct ProjectionPoint {

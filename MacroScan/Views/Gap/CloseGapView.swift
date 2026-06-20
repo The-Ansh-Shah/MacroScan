@@ -111,8 +111,7 @@ struct CloseGapView: View {
                     } else {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             Text("From your foods")
-                                .font(.mHeadline)
-                                .foregroundStyle(Color.mTextPrimary)
+                                .mSectionTitle()
 
                             ForEach(suggestions) { food in
                                 Button {
@@ -130,10 +129,7 @@ struct CloseGapView: View {
                             }
                         }
                         .padding(Spacing.md)
-                        .background(
-                            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                                .fill(Color.mBgSecondary)
-                        )
+                        .mCard()
                     }
 
                     if !curatedPicks.isEmpty {
@@ -185,10 +181,7 @@ struct CloseGapView: View {
             .foregroundStyle(Color.mAccent)
             .padding(Spacing.md)
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
         }
         .buttonStyle(.plain)
     }
@@ -199,8 +192,7 @@ struct CloseGapView: View {
     private var recipesSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Recipes that fit")
-                .font(.mHeadline)
-                .foregroundStyle(Color.mTextPrimary)
+                .mSectionTitle()
 
             ForEach(fittingRecipes) { recipe in
                 Button {
@@ -219,10 +211,7 @@ struct CloseGapView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func formattedServings(_ value: Double) -> String {
@@ -235,8 +224,7 @@ struct CloseGapView: View {
     private var curatedSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Vegetarian high-protein picks")
-                .font(.mHeadline)
-                .foregroundStyle(Color.mTextPrimary)
+                .mSectionTitle()
             Text("Lean, egg- & mushroom-free options ranked by protein per calorie.")
                 .font(.mCaption)
                 .foregroundStyle(Color.mTextSecondary)
@@ -257,10 +245,7 @@ struct CloseGapView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     // MARK: - Gap Summary
@@ -273,8 +258,7 @@ struct CloseGapView: View {
 
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Still Need Today")
-                .font(.mHeadline)
-                .foregroundStyle(Color.mTextPrimary)
+                .mSectionTitle()
 
             HStack(spacing: Spacing.md) {
                 gapItem(label: "Calories", remaining: calGap, unit: "cal", atTarget: calGap <= 0)
@@ -283,10 +267,7 @@ struct CloseGapView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func gapItem(label: String, remaining: Double, unit: String, atTarget: Bool) -> some View {

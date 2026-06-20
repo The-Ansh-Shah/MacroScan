@@ -32,6 +32,36 @@ extension Color {
     // Subtle accent for interactive elements
     static let mAccent = Color.accentColor
 
+    /// A lighter/brighter companion to `mAccent`, used as the bright end of gradients.
+    #if canImport(UIKit)
+    static var mAccentSecondary: Color {
+        Color(uiColor: UIColor(Color.mAccent).resolvedLighter(by: 0.18))
+    }
+    #else
+    static var mAccentSecondary: Color {
+        Color.mAccent.opacity(0.78)
+    }
+    #endif
+
+    /// A gentle base→slightly-lighter gradient for hero fills (rings, bars).
+    /// Flows top-leading → bottom-trailing.
+    static func macroGradient(_ base: Color) -> LinearGradient {
+        LinearGradient(
+            colors: [base, base.lighter(by: 0.22)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    /// Accent gradient (`mAccent` → `mAccentSecondary`) for primary CTAs.
+    static var mAccentGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.mAccent, Color.mAccentSecondary],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     /// Returns the appropriate target color based on progress ratio.
     /// - Parameters:
     ///   - ratio: current / target (e.g. 0.85 means 85% of target)
@@ -45,4 +75,34 @@ extension Color {
             return .mUnder
         }
     }
+
+    /// Returns a slightly brighter variant of the color for gradient accents.
+    /// Blends toward white by `amount` (0...1) so functional semantics are preserved.
+    func lighter(by amount: CGFloat) -> Color {
+        #if canImport(UIKit)
+        return Color(uiColor: UIColor(self).resolvedLighter(by: amount))
+        #else
+        // Layer a translucent white wash to brighten on platforms without UIColor blending.
+        return self.opacity(1.0 - Double(amount) * 0.35)
+        #endif
+    }
 }
+
+#if canImport(UIKit)
+extension UIColor {
+    /// Resolves the (possibly dynamic) color in the current trait environment and
+    /// blends it toward white by `amount` (0...1) to produce a brighter shade.
+    func resolvedLighter(by amount: CGFloat) -> UIColor {
+        let resolved = resolvedColor(with: .current)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else { return self }
+        let t = max(0, min(1, amount))
+        return UIColor(
+            red: r + (1 - r) * t,
+            green: g + (1 - g) * t,
+            blue: b + (1 - b) * t,
+            alpha: a
+        )
+    }
+}
+#endif

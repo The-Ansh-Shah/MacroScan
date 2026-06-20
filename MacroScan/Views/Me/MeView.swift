@@ -94,14 +94,14 @@ struct MeView: View {
                     if let w = latestMeasurement?.weightLb ?? profile.bodyWeightLb {
                         HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Text("\(String(format: "%.1f", w)) lb")
-                                .font(.mTitle)
+                                .font(.mStatNumber)
                                 .foregroundStyle(Color.mTextPrimary)
                                 .monospacedDigit()
                             trendArrow
                         }
                     } else {
                         Text("—")
-                            .font(.mTitle)
+                            .font(.mStatNumber)
                             .foregroundStyle(Color.mTextTertiary)
                     }
                 }
@@ -116,10 +116,7 @@ struct MeView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     @ViewBuilder
@@ -214,10 +211,7 @@ struct MeView: View {
                 }
             }
             .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
         }
     }
 
@@ -269,10 +263,7 @@ struct MeView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
         }
         .buttonStyle(.plain)
     }
@@ -286,7 +277,7 @@ struct MeView: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
                     Text("Recent Measurements")
-                        .font(.mHeadline)
+                        .font(.mTitle3)
                         .foregroundStyle(Color.mTextPrimary)
                     Spacer()
                     NavigationLink {
@@ -322,10 +313,7 @@ struct MeView: View {
                 }
             }
             .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                    .fill(Color.mBgSecondary)
-            )
+            .mCard()
         }
     }
 
@@ -336,7 +324,7 @@ struct MeView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
                 Text("Daily Targets")
-                    .font(.mHeadline)
+                    .font(.mTitle3)
                     .foregroundStyle(Color.mTextPrimary)
                 Spacer()
                 if profile.currentGoal?.isActive == true {
@@ -357,10 +345,7 @@ struct MeView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     @ViewBuilder
@@ -392,16 +377,12 @@ private struct MicroTargetsEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Fiber Target")
-                .font(.mHeadline)
-                .foregroundStyle(Color.mTextPrimary)
+                .mSectionTitle()
 
             microRow("Fiber", value: $profile.fiberTargetG, unit: "g")
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     @ViewBuilder

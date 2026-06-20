@@ -70,10 +70,7 @@ struct WeeklyReviewView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(Spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     // MARK: - Highlights
@@ -86,8 +83,7 @@ struct WeeklyReviewView: View {
 
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Daily Averages")
-                .font(.mHeadline)
-                .foregroundStyle(Color.mTextPrimary)
+                .mSectionTitle()
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
                 highlightRow(label: "Calories", value: "\(Int(avgCalories))", target: profile.map { "\(Int($0.calorieTarget))" })
@@ -97,10 +93,7 @@ struct WeeklyReviewView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 
     private func highlightRow(label: String, value: String, target: String?) -> some View {
@@ -129,8 +122,7 @@ struct WeeklyReviewView: View {
     private var journalCard: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Notes")
-                .font(.mHeadline)
-                .foregroundStyle(Color.mTextPrimary)
+                .mSectionTitle()
 
             TextField("How did this week go? Any thoughts...", text: $journalText, axis: .vertical)
                 .font(.mBody)
@@ -142,9 +134,6 @@ struct WeeklyReviewView: View {
                 )
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
     }
 }

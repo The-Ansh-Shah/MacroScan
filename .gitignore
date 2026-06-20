@@ -16,3 +16,7 @@ Package.resolved
 # Secrets — never commit
 MacroScan/Secrets.plist
 Secrets.xcconfig
+
+# Interactive HTML mockup (generated, not source)
+MacroScan-mockup.html
+.mockup/

@@ -62,10 +62,7 @@ struct WaterCard: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignConstants.cardCornerRadius)
-                .fill(Color.mBgSecondary)
-        )
+        .mCard()
         .task(id: date) { await refresh() }
         .sheet(isPresented: $showingDetail, onDismiss: {
             Task { await refresh() }
