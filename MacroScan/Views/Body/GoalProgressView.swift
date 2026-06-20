@@ -118,6 +118,9 @@ struct GoalProgressView: View {
         if let cals = p.correctedDailyCalories, p.status != .onTrack {
             parts.append("Aim for ~\(Int(cals.rounded())) kcal/day to hit your target date.")
         }
+        if let bf = goal?.targetBodyFatPct {
+            parts.append(String(format: "Progress is tracked toward your %.1f%% body-fat target via the implied target weight.", bf))
+        }
         return parts.joined(separator: " ")
     }
 

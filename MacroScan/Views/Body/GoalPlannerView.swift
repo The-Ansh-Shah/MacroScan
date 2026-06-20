@@ -63,15 +63,18 @@ struct GoalPlannerView: View {
         guard let profile, let current = currentWeight, current > 0 else { return nil }
 
         let targetWeight: Double
+        let targetBF: Double?
         switch goalType {
         case .weight:
             guard let t = Double(targetWeightText), t > 0 else { return nil }
             targetWeight = t
+            targetBF = nil
         case .bodyFat:
             guard let tbf = Double(targetBodyFatText), tbf > 0,
                   let cbf = currentBodyFat, cbf > 0 else { return nil }
             let lbm = current * (1 - cbf / 100)
             targetWeight = lbm / (1 - tbf / 100)
+            targetBF = tbf
         }
 
         return BodyCompositionService.computeDeficitPlan(
@@ -80,8 +83,19 @@ struct GoalPlannerView: View {
             targetWeightLb: targetWeight,
             targetDate: targetDate,
             currentBodyFatPct: currentBodyFat,
+            targetBodyFatPct: targetBF,
             tdeeOverride: planTDEE
         )
+    }
+
+    /// Implied target weight for an active body-fat goal (LBM preserved), nil otherwise.
+    private var bodyFatTargetWeight: Double? {
+        guard goalType == .bodyFat,
+              let current = currentWeight,
+              let tbf = Double(targetBodyFatText), tbf > 0,
+              let cbf = currentBodyFat, cbf > 0 else { return nil }
+        let lbm = current * (1 - cbf / 100)
+        return lbm / (1 - tbf / 100)
     }
 
     var body: some View {
@@ -243,6 +257,13 @@ struct GoalPlannerView: View {
     @ViewBuilder
     private func planSection(_ plan: DeficitPlan) -> some View {
         Section("Nutrition Plan") {
+            if goalType == .bodyFat, let targetWeight = bodyFatTargetWeight {
+                planRow("Target weight", value: "\(String(format: "%.1f", targetWeight)) lb")
+                planRow(
+                    "Weekly fat-loss target",
+                    value: "\(String(format: "%.2f", abs(plan.projectedWeeklyLossLb))) lb"
+                )
+            }
             planRow(
                 "Projected change",
                 value: "\(String(format: "%+.2f", -plan.projectedWeeklyLossLb)) lb / week"

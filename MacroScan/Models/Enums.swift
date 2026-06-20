@@ -7,6 +7,8 @@ enum FoodSource: String, Codable, CaseIterable {
     case fatSecret
     /// Bundled vegetarian high-protein library seeded on first launch.
     case curated
+    /// Ingredient created by the AI recipe generator.
+    case aiRecipe
 }
 
 enum MealType: String, Codable, CaseIterable, Identifiable {

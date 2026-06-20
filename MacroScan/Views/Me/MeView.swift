@@ -391,17 +391,11 @@ private struct MicroTargetsEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("Micronutrient Targets")
+            Text("Fiber Target")
                 .font(.mHeadline)
                 .foregroundStyle(Color.mTextPrimary)
 
             microRow("Fiber", value: $profile.fiberTargetG, unit: "g")
-            Divider()
-            microRow("Iron", value: $profile.ironTargetMg, unit: "mg")
-            Divider()
-            microRow("Vitamin D", value: $profile.vitaminDTargetMcg, unit: "mcg")
-            Divider()
-            microRow("Vitamin B12", value: $profile.vitaminB12TargetMcg, unit: "mcg")
         }
         .padding(Spacing.md)
         .background(

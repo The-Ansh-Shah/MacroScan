@@ -177,6 +177,60 @@ private struct SettingsFormView: View {
                     .foregroundStyle(Color.mTextTertiary)
             }
 
+            Section {
+                Toggle("Reminders", isOn: $profile.notificationsEnabled)
+                    .font(.mBody)
+                    .onChange(of: profile.notificationsEnabled) { _, enabled in
+                        if enabled {
+                            Task { @MainActor in
+                                let granted = await NotificationService.requestAuthorization()
+                                if granted {
+                                    await NotificationService.reschedule(
+                                        profile: profile,
+                                        repo: FoodRepository(modelContext: modelContext)
+                                    )
+                                } else {
+                                    profile.notificationsEnabled = false
+                                }
+                            }
+                        } else {
+                            NotificationService.cancelAll()
+                        }
+                    }
+
+                if profile.notificationsEnabled {
+                    ForEach(Array(profile.goalPingHours.indices), id: \.self) { index in
+                        Stepper(
+                            "Check-in \(index + 1): \(hourLabel(profile.goalPingHours[index]))",
+                            value: $profile.goalPingHours[index],
+                            in: 0...23
+                        )
+                        .font(.mBody)
+                        .onChange(of: profile.goalPingHours[index]) { _, _ in rescheduleNotifications() }
+                    }
+
+                    Toggle("Daily activity nudge", isOn: $profile.activityNudgeEnabled)
+                        .font(.mBody)
+                        .onChange(of: profile.activityNudgeEnabled) { _, _ in rescheduleNotifications() }
+
+                    if profile.activityNudgeEnabled {
+                        Stepper(
+                            "Nudge time: \(hourLabel(profile.activityNudgeHour))",
+                            value: $profile.activityNudgeHour,
+                            in: 0...23
+                        )
+                        .font(.mBody)
+                        .onChange(of: profile.activityNudgeHour) { _, _ in rescheduleNotifications() }
+                    }
+                }
+            } header: {
+                Text("Notifications")
+            } footer: {
+                Text("Local reminders only — progress is computed on your device. Check-ins ping your calorie/protein progress; the activity nudge suggests movement based on today's steps.")
+                    .font(.mCaption)
+                    .foregroundStyle(Color.mTextTertiary)
+            }
+
             Section("Apple Health") {
                 HealthKitSettingsSection()
             }
@@ -247,6 +301,27 @@ private struct SettingsFormView: View {
                 showingDocumentPicker = false
             }
             #endif
+        }
+    }
+
+    // MARK: - Notifications helpers
+
+    /// Format an hour-of-day (0...23) using the user's locale (12/24h).
+    private func hourLabel(_ hour: Int) -> String {
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = 0
+        let date = Calendar.current.date(from: components) ?? Date()
+        return date.formatted(.dateTime.hour().minute())
+    }
+
+    private func rescheduleNotifications() {
+        guard profile.notificationsEnabled else { return }
+        Task { @MainActor in
+            await NotificationService.reschedule(
+                profile: profile,
+                repo: FoodRepository(modelContext: modelContext)
+            )
         }
     }
 

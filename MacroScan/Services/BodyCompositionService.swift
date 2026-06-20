@@ -289,6 +289,29 @@ enum BodyCompositionService {
         return nil
     }
 
+    // MARK: - Fat-loss-rate guidance
+
+    /// Maximum safe fat-loss rate as a fraction of bodyweight per week, scaled by current
+    /// body-fat level. Leaner bodies must lose more slowly to spare lean mass. When BF% is
+    /// unknown we keep the legacy flat 1%/week cap.
+    /// (Evidence-informed defaults — see GoalPlanning.disclaimer; targets stay user-adjustable.)
+    static func maxWeeklyLossFraction(currentBodyFatPct: Double?) -> Double {
+        guard let bf = currentBodyFatPct else { return 0.010 }
+        switch bf {
+        case 25...:         return 0.010
+        case 20..<25:       return 0.008
+        case 15..<20:       return 0.006
+        case 10..<15:       return 0.004
+        default:            return 0.0025   // < 10%
+        }
+    }
+
+    /// Expected share of weight lost that comes from fat (vs. lean mass). Adequate protein
+    /// pushes more of the loss toward fat. Used for messaging only.
+    static func expectedFatLossFraction(proteinAdequate: Bool) -> Double {
+        proteinAdequate ? 0.80 : 0.65
+    }
+
     // MARK: - Deficit planning
 
     /// Build a DeficitPlan for the given goal. Enforces all hard safety rails.
@@ -298,6 +321,7 @@ enum BodyCompositionService {
         targetWeightLb: Double,
         targetDate: Date,
         currentBodyFatPct: Double? = nil,
+        targetBodyFatPct: Double? = nil,
         tdeeOverride: Double? = nil
     ) -> DeficitPlan {
         let today = Calendar.current.startOfDay(for: Date())
@@ -347,11 +371,13 @@ enum BodyCompositionService {
             warnings.append(.timelineTooAggressive(recommendedMinDays: minDays))
         }
 
-        // Rule 2: Weekly loss cap — 1% of bodyweight per week
+        // Rule 2: Weekly loss cap — scaled by current body-fat level (1% at high BF%,
+        // tapering to 0.25% below 10%). Falls back to the flat 1% when BF% is unknown.
         let projectedWeeklyLossLb = isLoss
             ? (rawDailyDeficit * 7) / 3500
             : -((abs(rawDailyDeficit) * 7) / 3500)
-        let safeMaxLossLb = currentWeightLb * 0.01
+        let maxLossFraction = maxWeeklyLossFraction(currentBodyFatPct: currentBodyFatPct)
+        let safeMaxLossLb = currentWeightLb * maxLossFraction
         if isLoss && projectedWeeklyLossLb > safeMaxLossLb {
             warnings.append(.weeklyLossTooFast(
                 currentLbPerWeek: projectedWeeklyLossLb,
@@ -359,8 +385,16 @@ enum BodyCompositionService {
             ))
         }
 
-        // Rule 3: Protein floor — 0.7g/lb minimum, 0.75g/lb recommended
-        let recommendedProteinG = currentWeightLb * 0.75
+        // Rule 3: Protein floor — LBM-based recommendation (1.0 g/lb LBM, +0.15 for
+        // vegetarians) with a 0.75 g/lb-bodyweight backstop and a 0.7 g/lb hard floor.
+        let lbm: Double = {
+            if let bf = currentBodyFatPct, bf > 0, bf < 100 {
+                return currentWeightLb * (1 - bf / 100)
+            }
+            return currentWeightLb
+        }()
+        let proteinPerLbLBM = profile.isVegetarian ? 1.15 : 1.0
+        let recommendedProteinG = max(proteinPerLbLBM * lbm, 0.75 * currentWeightLb)
         let proteinFloor = currentWeightLb * 0.7
         let dailyProteinTargetG = max(recommendedProteinG, proteinFloor)
         if dailyProteinTargetG < proteinFloor {
@@ -372,6 +406,23 @@ enum BodyCompositionService {
             let threshold: Double = profile.biologicalSex == .female ? 18 : 10
             if bf < threshold {
                 warnings.append(.bodyFatAlreadyLow(currentPct: bf))
+            }
+        }
+
+        // Rule 6: Body-fat target feasibility — the fat that must come off to reach the
+        // target BF% (holding LBM constant) may exceed the safe fat-loss rate for the whole
+        // timeline. If so, surface the earliest realistic timeline.
+        if isLoss,
+           let currentBF = currentBodyFatPct, currentBF > 0, currentBF < 100,
+           let targetBF = targetBodyFatPct, targetBF > 0, targetBF < currentBF {
+            let weeks = max(1.0, Double(timelineDays) / 7.0)
+            let targetWeightAtBF = lbm / (1 - targetBF / 100)
+            let fatToLose = currentWeightLb - targetWeightAtBF
+            let requiredFatRatePerWeek = fatToLose / weeks
+            let maxFatRatePerWeek = currentWeightLb * maxLossFraction
+            if fatToLose > 0, maxFatRatePerWeek > 0, requiredFatRatePerWeek > maxFatRatePerWeek {
+                let minWeeks = Int(ceil(fatToLose / maxFatRatePerWeek))
+                warnings.append(.bodyFatTimelineUnrealistic(minWeeks: minWeeks))
             }
         }
 
@@ -440,13 +491,14 @@ enum SafetyWarning: Identifiable {
     case proteinTooLow(minimum: Double)
     case bodyFatAlreadyLow(currentPct: Double)
     case weeklyLossTooFast(currentLbPerWeek: Double, safeMax: Double)
+    case bodyFatTimelineUnrealistic(minWeeks: Int)
     case info(String)
 
     enum Severity { case info, warning, critical }
 
     var severity: Severity {
         switch self {
-        case .timelineTooAggressive, .calorieFloorBreached, .weeklyLossTooFast:
+        case .timelineTooAggressive, .calorieFloorBreached, .weeklyLossTooFast, .bodyFatTimelineUnrealistic:
             return .critical
         case .proteinTooLow, .bodyFatAlreadyLow:
             return .warning
@@ -462,6 +514,7 @@ enum SafetyWarning: Identifiable {
         case .proteinTooLow(let m): return "protein-\(Int(m))"
         case .bodyFatAlreadyLow(let p): return "bf-\(Int(p))"
         case .weeklyLossTooFast(let c, _): return "loss-\(Int(c * 100))"
+        case .bodyFatTimelineUnrealistic(let w): return "bf-timeline-\(w)"
         case .info(let s): return "info-\(s.hashValue)"
         }
     }
@@ -473,6 +526,7 @@ enum SafetyWarning: Identifiable {
         case .proteinTooLow: return "Protein below floor"
         case .bodyFatAlreadyLow: return "Body fat already low"
         case .weeklyLossTooFast: return "Weekly loss rate too fast"
+        case .bodyFatTimelineUnrealistic: return "Body-fat timeline unrealistic"
         case .info(let s): return s
         }
     }
@@ -488,7 +542,9 @@ enum SafetyWarning: Identifiable {
         case .bodyFatAlreadyLow(let pct):
             return "Your current body fat (\(String(format: "%.1f", pct))%) is already low. Further cutting may carry hormonal and health risks."
         case .weeklyLossTooFast(let current, let safe):
-            return "Planned loss: \(String(format: "%.2f", current)) lb/week. The safe maximum is \(String(format: "%.2f", safe)) lb/week (1% of bodyweight)."
+            return "Planned loss: \(String(format: "%.2f", current)) lb/week. The safe maximum is \(String(format: "%.2f", safe)) lb/week for your current body-fat level."
+        case .bodyFatTimelineUnrealistic(let minWeeks):
+            return "This body-fat target needs faster fat loss than is safe at your current level. Earliest realistic timeline ≈ \(minWeeks) weeks."
         case .info(let s):
             return s
         }

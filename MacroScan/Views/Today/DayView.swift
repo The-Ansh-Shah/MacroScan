@@ -35,6 +35,7 @@ struct DayView: View {
 
     @State private var showingRecipes = false
     @State private var showingQuickAdd = false
+    @State private var showingAddSheet = false
     @State private var prefilledSearchQuery: String = ""
     @State private var editingEntry: LogEntry?
     @State private var editingQuickAddEntry: LogEntry?
@@ -166,27 +167,8 @@ struct DayView: View {
 
             if isTodayTab && isToday {
                 ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button { showingSearch = true } label: {
-                            Label("Search Foods", systemImage: "magnifyingglass")
-                        }
-                        #if canImport(UIKit)
-                        Button { showingScanner = true } label: {
-                            Label("Scan Barcode", systemImage: "barcode.viewfinder")
-                        }
-                        Button { showingPhotoCapture = true } label: {
-                            Label("Snap Photo", systemImage: "camera.fill")
-                        }
-                        #endif
-                        Button { showingRecipes = true } label: {
-                            Label("Recipes", systemImage: "book.closed")
-                        }
-                        Button { showingQuickAdd = true } label: {
-                            Label("Quick Add Calories", systemImage: "bolt.fill")
-                        }
-                        Button { showingManualEntry = true } label: {
-                            Label("Manual Entry", systemImage: "square.and.pencil")
-                        }
+                    Button {
+                        showingAddSheet = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.mTitle3)
@@ -227,6 +209,57 @@ struct DayView: View {
         }
         .sheet(isPresented: $showingQuickAdd) {
             QuickAddSheet()
+        }
+        .sheet(isPresented: $showingAddSheet) {
+            #if canImport(UIKit)
+            AddFoodSheet(
+                onSearch: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingSearch = true }
+                },
+                onScan: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingScanner = true }
+                },
+                onPhoto: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingPhotoCapture = true }
+                },
+                onRecipes: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingRecipes = true }
+                },
+                onQuickAdd: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingQuickAdd = true }
+                },
+                onManual: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingManualEntry = true }
+                }
+            )
+            .presentationDetents([.medium, .large])
+            #else
+            AddFoodSheet(
+                onSearch: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingSearch = true }
+                },
+                onRecipes: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingRecipes = true }
+                },
+                onQuickAdd: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingQuickAdd = true }
+                },
+                onManual: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingManualEntry = true }
+                }
+            )
+            .presentationDetents([.medium, .large])
+            #endif
         }
         .sheet(item: $editingEntry) { entry in
             EditLogEntrySheet(entry: entry)

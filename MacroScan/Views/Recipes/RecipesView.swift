@@ -8,6 +8,7 @@ struct RecipesView: View {
 
     @State private var searchQuery: String = ""
     @State private var showingBuilder = false
+    @State private var showingGenerator = false
     @State private var editingRecipe: Recipe?
 
     private var sorted: [Recipe] {
@@ -71,8 +72,17 @@ struct RecipesView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingBuilder = true
+                    Menu {
+                        Button {
+                            showingBuilder = true
+                        } label: {
+                            Label("New Recipe", systemImage: "square.and.pencil")
+                        }
+                        Button {
+                            showingGenerator = true
+                        } label: {
+                            Label("Generate with AI", systemImage: "sparkles")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -80,6 +90,9 @@ struct RecipesView: View {
             }
             .sheet(isPresented: $showingBuilder) {
                 RecipeBuilderView()
+            }
+            .sheet(isPresented: $showingGenerator) {
+                GenerateRecipeSheet()
             }
         }
     }

@@ -454,53 +454,7 @@ class FoodRepository {
             }
         }
 
-        // Micro streak — check last 5 days for B12/iron/D under target
-        let streak = microDeficitStreak(profile: profile, endingOn: date)
-        if let streak {
-            flags.append(BalanceFlag(
-                id: "microDeficit-\(streak.nutrient)-\(dayKey)",
-                kind: .microDeficitStreak,
-                severity: .warning,
-                title: "\(streak.nutrient) under target 5+ days",
-                message: "\(streak.days) days running under the \(streak.nutrient) target. Consider foods rich in it.",
-                deepLink: .search(query: streak.searchHint)
-            ))
-        }
-
         return flags
-    }
-
-    private struct MicroStreak {
-        let nutrient: String
-        let days: Int
-        let searchHint: String
-    }
-
-    private func microDeficitStreak(profile: UserProfile, endingOn date: Date) -> MicroStreak? {
-        let cal = Calendar.current
-        let micros: [(name: String, target: Double, search: String, extract: (ScaledMacros) -> Double)] = [
-            ("B12", profile.vitaminB12TargetMcg, "vitamin b12", { $0.vitaminB12Mcg }),
-            ("Iron", profile.ironTargetMg, "iron", { $0.ironMg }),
-            ("Vitamin D", profile.vitaminDTargetMcg, "vitamin d", { $0.vitaminDMcg })
-        ]
-
-        for micro in micros where micro.target > 0 {
-            var streakDays = 0
-            for daysAgo in 0..<14 {
-                guard let checkDate = cal.date(byAdding: .day, value: -daysAgo, to: date) else { break }
-                let totals = dailyTotals(forDate: checkDate)
-                let value = micro.extract(totals)
-                if value < micro.target * 0.5 {
-                    streakDays += 1
-                } else {
-                    break
-                }
-            }
-            if streakDays >= 5 {
-                return MicroStreak(nutrient: micro.name, days: streakDays, searchHint: micro.search)
-            }
-        }
-        return nil
     }
 
     // MARK: - Water

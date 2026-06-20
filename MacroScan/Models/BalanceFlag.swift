@@ -15,7 +15,6 @@ struct BalanceFlag: Identifiable {
         case fiberLow
         case fatExcessive
         case calorieDeficitLarge
-        case microDeficitStreak
     }
 
     enum Severity {
@@ -41,7 +40,6 @@ struct BalanceFlag: Identifiable {
         case .fiberLow: return "leaf"
         case .fatExcessive: return "drop.fill"
         case .calorieDeficitLarge: return "arrow.down.circle"
-        case .microDeficitStreak: return "pills"
         }
     }
 

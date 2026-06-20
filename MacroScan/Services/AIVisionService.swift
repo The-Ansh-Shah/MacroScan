@@ -50,6 +50,149 @@ actor AIVisionService {
         let warnings: [String]
     }
 
+    // MARK: - Recipe generation
+
+    struct GeneratedRecipeIngredient {
+        let name: String
+        let grams: Double
+        let calories, proteinG, carbsG, fatG, fiberG: Double
+    }
+
+    struct GeneratedRecipe {
+        let name: String
+        let totalServings: Double
+        let notes: String?
+        let ingredients: [GeneratedRecipeIngredient]
+    }
+
+    /// Generate a vegetarian recipe with Gemini, optionally tuned to remaining macros.
+    /// Reuses the same endpoint/header/`responseMimeType` and retry/backoff path as `analyze()`.
+    /// `targetCalories`/`targetProtein` (when non-nil) steer the PER-SERVING macros, protein-first.
+    func generateRecipe(
+        prompt userText: String,
+        isVegetarian: Bool,
+        excludedIngredients: [String],
+        targetCalories: Double?,
+        targetProtein: Double?
+    ) async throws -> GeneratedRecipe {
+        let backoffs: [UInt64] = [0, 1_000_000_000, 3_000_000_000, 8_000_000_000]
+        var lastError: Error?
+
+        for attempt in 0..<3 {
+            if backoffs[attempt] > 0 {
+                try? await Task.sleep(nanoseconds: backoffs[attempt])
+            }
+            do {
+                return try await performGenerateRecipe(
+                    userText: userText,
+                    isVegetarian: isVegetarian,
+                    excludedIngredients: excludedIngredients,
+                    targetCalories: targetCalories,
+                    targetProtein: targetProtein
+                )
+            } catch let error as AIError {
+                lastError = error
+                if Self.isRetryable(error), attempt < 2 {
+                    continue
+                }
+                throw error
+            } catch {
+                throw error
+            }
+        }
+        throw lastError ?? AIError.emptyResponse
+    }
+
+    private func performGenerateRecipe(
+        userText: String,
+        isVegetarian: Bool,
+        excludedIngredients: [String],
+        targetCalories: Double?,
+        targetProtein: Double?
+    ) async throws -> GeneratedRecipe {
+        let exclusions = excludedIngredients.isEmpty ? "none" : excludedIngredients.joined(separator: ", ")
+        let dietLine = isVegetarian
+            ? "The recipe MUST be vegetarian (no meat, poultry, or fish)."
+            : "No strict dietary restriction, but keep it vegetarian-friendly."
+
+        var goalLines: [String] = []
+        if let p = targetProtein {
+            goalLines.append("Design a single recipe whose PER-SERVING macros are close to ~\(Int(p)) g protein (protein is the priority).")
+        }
+        if let c = targetCalories {
+            goalLines.append("Per-serving calories should be close to ~\(Int(c)) kcal.")
+        }
+        let goalBlock = goalLines.isEmpty ? "" : goalLines.joined(separator: "\n") + "\n"
+
+        let keywords = userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let keywordLine = keywords.isEmpty
+            ? "The user did not give extra keywords; pick something tasty and balanced."
+            : "User request / cuisine / keywords: \(keywords)."
+
+        let prompt = """
+        You are designing one vegetarian recipe.
+        \(dietLine)
+        HARD CONSTRAINT: do NOT include any of these excluded ingredients: \(exclusions).
+        \(keywordLine)
+        \(goalBlock)Provide realistic ingredient amounts in grams, and the macros for EACH ingredient AT that gram amount (not per 100g).
+        Do NOT include any micronutrients.
+        Return ONLY valid JSON matching this exact schema:
+        {
+          "name": "string",
+          "total_servings": number,
+          "notes": "string or null",
+          "ingredients": [
+            {
+              "name": "string",
+              "grams": number,
+              "calories": number,
+              "protein_g": number,
+              "carbs_g": number,
+              "fat_g": number,
+              "fiber_g": number
+            }
+          ]
+        }
+        """
+
+        let data = try await postGemini(parts: [["text": prompt]], temperature: 0.6)
+        return try parseRecipeResponse(data)
+    }
+
+    private nonisolated func parseRecipeResponse(_ data: Data) throws -> GeneratedRecipe {
+        let text = try candidateText(from: data)
+
+        guard let jsonData = text.data(using: .utf8) else {
+            throw AIError.parseFailed("text not utf8")
+        }
+
+        let result: AIRecipeResult
+        do {
+            result = try JSONDecoder().decode(AIRecipeResult.self, from: jsonData)
+        } catch {
+            throw AIError.parseFailed("schema mismatch: \(text.prefix(200))")
+        }
+
+        let ingredients = result.ingredients.map { ing in
+            GeneratedRecipeIngredient(
+                name: ing.name,
+                grams: ing.grams,
+                calories: ing.calories,
+                proteinG: ing.proteinG,
+                carbsG: ing.carbsG,
+                fatG: ing.fatG,
+                fiberG: ing.fiberG
+            )
+        }
+
+        return GeneratedRecipe(
+            name: result.name,
+            totalServings: result.totalServings > 0 ? result.totalServings : 1,
+            notes: result.notes,
+            ingredients: ingredients
+        )
+    }
+
     /// Analyze a food photo using Gemini 2.5 Flash.
     /// This is the ONLY AI call in the entire app.
     ///
@@ -120,16 +263,12 @@ actor AIVisionService {
     }
 
     private func performAnalyze(imageBase64: String, excludedIngredients: [String], isVegetarian: Bool) async throws -> EstimatedFood {
-        guard let apiKey = await MainActor.run(body: { SecretsLoader.geminiAPIKey }) else {
-            throw AIError.noAPIKey
-        }
-
         let exclusions = excludedIngredients.isEmpty ? "none" : excludedIngredients.joined(separator: ", ")
         let dietInfo = isVegetarian ? "User is vegetarian" : "No dietary restrictions"
 
         let prompt = """
         \(dietInfo) and excludes: \(exclusions).
-        Identify the food in this image. Estimate grams, then estimate macros and micros per the estimated portion.
+        Identify the food in this image. Estimate grams, then estimate macros per the estimated portion.
         If the image contains excluded items (\(exclusions)), list them in warnings.
         Return ONLY valid JSON matching this exact schema:
         {
@@ -140,9 +279,6 @@ actor AIVisionService {
           "carbs_g": number,
           "fat_g": number,
           "fiber_g": number,
-          "iron_mg": number,
-          "vitamin_d_mcg": number,
-          "vitamin_b12_mcg": number,
           "is_vegetarian": boolean,
           "contains_eggs": boolean,
           "contains_mushrooms": boolean,
@@ -151,23 +287,33 @@ actor AIVisionService {
         }
         """
 
-        let requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": prompt],
-                        [
-                            "inline_data": [
-                                "mime_type": "image/jpeg",
-                                "data": imageBase64
-                            ]
-                        ]
-                    ]
+        let parts: [[String: Any]] = [
+            ["text": prompt],
+            [
+                "inline_data": [
+                    "mime_type": "image/jpeg",
+                    "data": imageBase64
                 ]
-            ],
+            ]
+        ]
+
+        let data = try await postGemini(parts: parts, temperature: 0.2)
+        return try parseResponse(data)
+    }
+
+    /// Shared Gemini POST used by both `analyze()` and `generateRecipe()`.
+    /// Builds the request with the standard endpoint/header/`responseMimeType`,
+    /// throws the same `AIError` variants, and returns the raw response `Data`.
+    private func postGemini(parts: [[String: Any]], temperature: Double) async throws -> Data {
+        guard let apiKey = await MainActor.run(body: { SecretsLoader.geminiAPIKey }) else {
+            throw AIError.noAPIKey
+        }
+
+        let requestBody: [String: Any] = [
+            "contents": [["parts": parts]],
             "generationConfig": [
                 "responseMimeType": "application/json",
-                "temperature": 0.2
+                "temperature": temperature
             ]
         ]
 
@@ -195,10 +341,46 @@ actor AIVisionService {
             throw AIError.httpError(status: http.statusCode, body: body)
         }
 
-        return try parseResponse(data)
+        return data
     }
 
     private nonisolated func parseResponse(_ data: Data) throws -> EstimatedFood {
+        let text = try candidateText(from: data)
+
+        guard let jsonData = text.data(using: .utf8) else {
+            throw AIError.parseFailed("text not utf8")
+        }
+
+        let result: AIFoodResult
+        do {
+            result = try JSONDecoder().decode(AIFoodResult.self, from: jsonData)
+        } catch {
+            throw AIError.parseFailed("schema mismatch: \(text.prefix(200))")
+        }
+
+        return EstimatedFood(
+            name: result.name,
+            estimatedGrams: result.estimatedGrams,
+            calories: result.calories,
+            proteinG: result.proteinG,
+            carbsG: result.carbsG,
+            fatG: result.fatG,
+            fiberG: result.fiberG,
+            ironMg: result.ironMg ?? 0,
+            vitaminDMcg: result.vitaminDMcg ?? 0,
+            vitaminB12Mcg: result.vitaminB12Mcg ?? 0,
+            isVegetarian: result.isVegetarian,
+            containsEggs: result.containsEggs,
+            containsMushrooms: result.containsMushrooms,
+            confidence: result.confidence,
+            warnings: result.warnings
+        )
+    }
+
+    /// Extract the model's JSON text payload from a Gemini response envelope.
+    /// Shared by photo analysis and recipe generation. Throws the same
+    /// `.blocked` / `.emptyResponse` / `.parseFailed` variants as before.
+    private nonisolated func candidateText(from data: Data) throws -> String {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             let raw = String(data: data, encoding: .utf8) ?? "<binary>"
             throw AIError.parseFailed("outer JSON invalid: \(raw.prefix(200))")
@@ -226,34 +408,7 @@ actor AIVisionService {
             throw AIError.parseFailed("missing candidate text: \(raw.prefix(200))")
         }
 
-        guard let jsonData = text.data(using: .utf8) else {
-            throw AIError.parseFailed("text not utf8")
-        }
-
-        let result: AIFoodResult
-        do {
-            result = try JSONDecoder().decode(AIFoodResult.self, from: jsonData)
-        } catch {
-            throw AIError.parseFailed("schema mismatch: \(text.prefix(200))")
-        }
-
-        return EstimatedFood(
-            name: result.name,
-            estimatedGrams: result.estimatedGrams,
-            calories: result.calories,
-            proteinG: result.proteinG,
-            carbsG: result.carbsG,
-            fatG: result.fatG,
-            fiberG: result.fiberG,
-            ironMg: result.ironMg,
-            vitaminDMcg: result.vitaminDMcg,
-            vitaminB12Mcg: result.vitaminB12Mcg,
-            isVegetarian: result.isVegetarian,
-            containsEggs: result.containsEggs,
-            containsMushrooms: result.containsMushrooms,
-            confidence: result.confidence,
-            warnings: result.warnings
-        )
+        return text
     }
 }
 
@@ -267,9 +422,9 @@ private struct AIFoodResult: Decodable, Sendable {
     let carbsG: Double
     let fatG: Double
     let fiberG: Double
-    let ironMg: Double
-    let vitaminDMcg: Double
-    let vitaminB12Mcg: Double
+    let ironMg: Double?
+    let vitaminDMcg: Double?
+    let vitaminB12Mcg: Double?
     let isVegetarian: Bool
     let containsEggs: Bool
     let containsMushrooms: Bool
@@ -292,5 +447,39 @@ private struct AIFoodResult: Decodable, Sendable {
         case containsMushrooms = "contains_mushrooms"
         case confidence
         case warnings
+    }
+}
+
+private struct AIRecipeResult: Decodable, Sendable {
+    let name: String
+    let totalServings: Double
+    let notes: String?
+    let ingredients: [Ingredient]
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case totalServings = "total_servings"
+        case notes
+        case ingredients
+    }
+
+    struct Ingredient: Decodable, Sendable {
+        let name: String
+        let grams: Double
+        let calories: Double
+        let proteinG: Double
+        let carbsG: Double
+        let fatG: Double
+        let fiberG: Double
+
+        enum CodingKeys: String, CodingKey {
+            case name
+            case grams
+            case calories
+            case proteinG = "protein_g"
+            case carbsG = "carbs_g"
+            case fatG = "fat_g"
+            case fiberG = "fiber_g"
+        }
     }
 }

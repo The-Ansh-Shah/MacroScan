@@ -35,6 +35,13 @@ struct RootView: View {
             if let profile = profiles.first, profile.heightIn == nil && profile.ageYears == nil {
                 showingOnboarding = true
             }
+            // Refresh local notification content from today's data on each launch.
+            if let profile = profiles.first, profile.notificationsEnabled {
+                let repo = FoodRepository(modelContext: modelContext)
+                Task { @MainActor in
+                    await NotificationService.reschedule(profile: profile, repo: repo)
+                }
+            }
         }
         .sheet(isPresented: $showingOnboarding) {
             if let profile = profiles.first {

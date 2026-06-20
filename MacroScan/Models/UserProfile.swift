@@ -46,6 +46,13 @@ final class UserProfile {
     var fatSecretCallsToday: Int = 0
     var fatSecretCallsResetAt: Date?
 
+    // Local notifications (no server). Inline defaults required for SwiftData
+    // lightweight migration; not part of init(...) — defaults cover them.
+    var notificationsEnabled: Bool = false
+    var goalPingHours: [Int] = [11, 16, 20]
+    var activityNudgeEnabled: Bool = false
+    var activityNudgeHour: Int = 8
+
     var dietGoal: DietGoal {
         get { DietGoal(rawValue: dietGoalRaw) ?? .cut }
         set { dietGoalRaw = newValue.rawValue }

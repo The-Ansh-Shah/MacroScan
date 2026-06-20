@@ -27,18 +27,12 @@ struct ScanResultSheet: View {
     @State private var editCarbs: String = ""
     @State private var editFat: String = ""
     @State private var editFiber: String = ""
-    @State private var editIron: String = ""
-    @State private var editVitaminD: String = ""
-    @State private var editVitaminB12: String = ""
     // Captured once on appear so Reset always goes back to the initial display values
     @State private var origCal: String = ""
     @State private var origPro: String = ""
     @State private var origCarbs: String = ""
     @State private var origFat: String = ""
     @State private var origFiber: String = ""
-    @State private var origIron: String = ""
-    @State private var origVitD: String = ""
-    @State private var origVitB12: String = ""
 
     private var gramsEaten: Double {
         let raw = Double(amountText) ?? 0
@@ -56,17 +50,16 @@ struct ScanResultSheet: View {
             carbsG: Double(editCarbs) ?? food.carbsG,
             fatG: Double(editFat) ?? food.fatG,
             fiberG: Double(editFiber) ?? food.fiberG,
-            ironMg: Double(editIron) ?? food.ironMg,
-            vitaminDMcg: Double(editVitaminD) ?? food.vitaminDMcg,
-            vitaminB12Mcg: Double(editVitaminB12) ?? food.vitaminB12Mcg
+            ironMg: 0,
+            vitaminDMcg: 0,
+            vitaminB12Mcg: 0
         )
     }
 
     private var isNutritionModified: Bool {
         editCalories != origCal || editProtein != origPro ||
         editCarbs != origCarbs || editFat != origFat ||
-        editFiber != origFiber || editIron != origIron ||
-        editVitaminD != origVitD || editVitaminB12 != origVitB12
+        editFiber != origFiber
     }
 
     private var adjustedMacros: ScaledMacros? {
@@ -80,9 +73,9 @@ struct ScanResultSheet: View {
             carbsG: perServing.carbsG * ratio,
             fatG: perServing.fatG * ratio,
             fiberG: perServing.fiberG * ratio,
-            ironMg: perServing.ironMg * ratio,
-            vitaminDMcg: perServing.vitaminDMcg * ratio,
-            vitaminB12Mcg: perServing.vitaminB12Mcg * ratio
+            ironMg: 0,
+            vitaminDMcg: 0,
+            vitaminB12Mcg: 0
         )
         guard !substitutions.isEmpty, !food.ingredients.isEmpty else { return base }
 
@@ -96,9 +89,9 @@ struct ScanResultSheet: View {
                 carbsG: base.carbsG * share,
                 fatG: base.fatG * share,
                 fiberG: base.fiberG * share,
-                ironMg: base.ironMg * share,
-                vitaminDMcg: base.vitaminDMcg * share,
-                vitaminB12Mcg: base.vitaminB12Mcg * share
+                ironMg: 0,
+                vitaminDMcg: 0,
+                vitaminB12Mcg: 0
             )
             let added = replacement.macros(forGrams: gramShare)
             adjusted = ScaledMacros(
@@ -107,9 +100,9 @@ struct ScanResultSheet: View {
                 carbsG: adjusted.carbsG - displaced.carbsG + added.carbsG,
                 fatG: adjusted.fatG - displaced.fatG + added.fatG,
                 fiberG: adjusted.fiberG - displaced.fiberG + added.fiberG,
-                ironMg: adjusted.ironMg - displaced.ironMg + added.ironMg,
-                vitaminDMcg: adjusted.vitaminDMcg - displaced.vitaminDMcg + added.vitaminDMcg,
-                vitaminB12Mcg: adjusted.vitaminB12Mcg - displaced.vitaminB12Mcg + added.vitaminB12Mcg
+                ironMg: 0,
+                vitaminDMcg: 0,
+                vitaminB12Mcg: 0
             )
         }
         return adjusted
@@ -253,9 +246,6 @@ struct ScanResultSheet: View {
                 macroEditRow("Carbs", binding: $editCarbs, unit: "g")
                 macroEditRow("Fat", binding: $editFat, unit: "g")
                 macroEditRow("Fiber", binding: $editFiber, unit: "g")
-                macroEditRow("Iron", binding: $editIron, unit: "mg")
-                macroEditRow("Vitamin D", binding: $editVitaminD, unit: "mcg")
-                macroEditRow("Vitamin B12", binding: $editVitaminB12, unit: "mcg")
 
                 Button("Reset to scanned values") {
                     resetNutrition()
@@ -403,9 +393,6 @@ struct ScanResultSheet: View {
             food.carbsG = Double(editCarbs) ?? food.carbsG
             food.fatG = Double(editFat) ?? food.fatG
             food.fiberG = Double(editFiber) ?? food.fiberG
-            food.ironMg = Double(editIron) ?? food.ironMg
-            food.vitaminDMcg = Double(editVitaminD) ?? food.vitaminDMcg
-            food.vitaminB12Mcg = Double(editVitaminB12) ?? food.vitaminB12Mcg
             food.userVerified = true
             food.lastVerifiedAt = Date()
             logFood = food
@@ -420,9 +407,6 @@ struct ScanResultSheet: View {
                 carbsG: adjusted.carbsG * scale,
                 fatG: adjusted.fatG * scale,
                 fiberG: adjusted.fiberG * scale,
-                ironMg: adjusted.ironMg * scale,
-                vitaminDMcg: adjusted.vitaminDMcg * scale,
-                vitaminB12Mcg: adjusted.vitaminB12Mcg * scale,
                 source: .manual,
                 isVegetarian: food.isVegetarian,
                 containsEggs: food.containsEggs,
@@ -455,18 +439,12 @@ struct ScanResultSheet: View {
         origCarbs = String(format: "%.1f", food.carbsG)
         origFat   = String(format: "%.1f", food.fatG)
         origFiber = String(format: "%.1f", food.fiberG)
-        origIron  = String(format: "%.2f", food.ironMg)
-        origVitD  = String(format: "%.1f", food.vitaminDMcg)
-        origVitB12 = String(format: "%.2f", food.vitaminB12Mcg)
         // Init edit fields to match
         editCalories  = origCal
         editProtein   = origPro
         editCarbs     = origCarbs
         editFat       = origFat
         editFiber     = origFiber
-        editIron      = origIron
-        editVitaminD  = origVitD
-        editVitaminB12 = origVitB12
     }
 
     private func resetNutrition() {
@@ -475,9 +453,6 @@ struct ScanResultSheet: View {
         editCarbs     = origCarbs
         editFat       = origFat
         editFiber     = origFiber
-        editIron      = origIron
-        editVitaminD  = origVitD
-        editVitaminB12 = origVitB12
     }
 }
 

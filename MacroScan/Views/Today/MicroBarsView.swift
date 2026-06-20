@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Displays micro-nutrient progress bars (fiber, iron, vitamin D, B12)
+/// Displays the fiber progress bar vs the profile's fiber target.
 struct MicroBarsView: View {
     let totals: ScaledMacros
     let profile: UserProfile
@@ -12,27 +12,6 @@ struct MicroBarsView: View {
                 current: totals.fiberG,
                 target: profile.fiberTargetG,
                 unit: "g",
-                isOverBad: false
-            )
-            TargetBar(
-                label: "Iron",
-                current: totals.ironMg,
-                target: profile.ironTargetMg,
-                unit: "mg",
-                isOverBad: false
-            )
-            TargetBar(
-                label: "Vitamin D",
-                current: totals.vitaminDMcg,
-                target: profile.vitaminDTargetMcg,
-                unit: "mcg",
-                isOverBad: false
-            )
-            TargetBar(
-                label: "Vitamin B12",
-                current: totals.vitaminB12Mcg,
-                target: profile.vitaminB12TargetMcg,
-                unit: "mcg",
                 isOverBad: false
             )
         }
