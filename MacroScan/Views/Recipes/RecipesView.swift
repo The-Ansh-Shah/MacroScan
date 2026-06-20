@@ -7,9 +7,12 @@ struct RecipesView: View {
     private var recipes: [Recipe]
 
     @State private var searchQuery: String = ""
-    @State private var showingBuilder = false
-    @State private var showingGenerator = false
-    @State private var editingRecipe: Recipe?
+    @State private var activeSheet: ActiveSheet?
+
+    private enum ActiveSheet: Identifiable {
+        case builder, generator
+        var id: Int { self == .builder ? 0 : 1 }
+    }
 
     private var sorted: [Recipe] {
         recipes.sorted { ($0.isFavorite ? 0 : 1) < ($1.isFavorite ? 0 : 1) }
@@ -29,7 +32,7 @@ struct RecipesView: View {
                         symbol: "book.closed",
                         message: "No recipes yet.\nCombine foods into a meal you can log with one tap.",
                         buttonTitle: "New Recipe",
-                        action: { showingBuilder = true }
+                        action: { activeSheet = .builder }
                     )
                 } else {
                     List {
@@ -74,12 +77,12 @@ struct RecipesView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button {
-                            showingBuilder = true
+                            activeSheet = .builder
                         } label: {
                             Label("New Recipe", systemImage: "square.and.pencil")
                         }
                         Button {
-                            showingGenerator = true
+                            activeSheet = .generator
                         } label: {
                             Label("Generate with AI", systemImage: "sparkles")
                         }
@@ -88,11 +91,11 @@ struct RecipesView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingBuilder) {
-                RecipeBuilderView()
-            }
-            .sheet(isPresented: $showingGenerator) {
-                GenerateRecipeSheet()
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .builder: RecipeBuilderView()
+                case .generator: GenerateRecipeSheet()
+                }
             }
         }
     }

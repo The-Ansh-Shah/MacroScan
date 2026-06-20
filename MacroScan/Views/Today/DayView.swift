@@ -36,6 +36,7 @@ struct DayView: View {
     @State private var showingRecipes = false
     @State private var showingQuickAdd = false
     @State private var showingAddSheet = false
+    @State private var showingGenerateRecipe = false
     @State private var prefilledSearchQuery: String = ""
     @State private var editingEntry: LogEntry?
     @State private var editingQuickAddEntry: LogEntry?
@@ -236,6 +237,10 @@ struct DayView: View {
                 onManual: {
                     showingAddSheet = false
                     DispatchQueue.main.async { showingManualEntry = true }
+                },
+                onGenerateRecipe: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingGenerateRecipe = true }
                 }
             )
             .presentationDetents([.medium, .large])
@@ -256,10 +261,17 @@ struct DayView: View {
                 onManual: {
                     showingAddSheet = false
                     DispatchQueue.main.async { showingManualEntry = true }
+                },
+                onGenerateRecipe: {
+                    showingAddSheet = false
+                    DispatchQueue.main.async { showingGenerateRecipe = true }
                 }
             )
             .presentationDetents([.medium, .large])
             #endif
+        }
+        .sheet(isPresented: $showingGenerateRecipe) {
+            GenerateRecipeSheet()
         }
         .sheet(item: $editingEntry) { entry in
             EditLogEntrySheet(entry: entry)

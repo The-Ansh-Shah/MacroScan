@@ -15,6 +15,7 @@ struct AddFoodSheet: View {
     let onPhoto: () -> Void
     #endif
     let onRecipes: () -> Void
+    let onGenerateRecipe: () -> Void
     let onQuickAdd: () -> Void
     let onManual: () -> Void
 
@@ -121,6 +122,12 @@ struct AddFoodSheet: View {
                 title: "Recipes",
                 systemImage: "book.closed",
                 action: onRecipes
+            )
+            Divider().padding(.leading, Spacing.md)
+            secondaryRow(
+                title: "Generate a recipe (AI)",
+                systemImage: "sparkles",
+                action: onGenerateRecipe
             )
             Divider().padding(.leading, Spacing.md)
             secondaryRow(
