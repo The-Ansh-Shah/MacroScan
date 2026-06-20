@@ -1,15 +1,27 @@
 import SwiftUI
 
 extension Color {
-    // Background hierarchy (system-provided)
+    // Background hierarchy
+    #if canImport(UIKit)
     static let mBgPrimary = Color(.systemBackground)
     static let mBgSecondary = Color(.secondarySystemBackground)
     static let mBgGrouped = Color(.systemGroupedBackground)
+    #else
+    static let mBgPrimary = Color(.windowBackgroundColor)
+    static let mBgSecondary = Color(.controlBackgroundColor)
+    static let mBgGrouped = Color(.underPageBackgroundColor)
+    #endif
 
     // Text hierarchy
+    #if canImport(UIKit)
     static let mTextPrimary = Color(.label)
     static let mTextSecondary = Color(.secondaryLabel)
     static let mTextTertiary = Color(.tertiaryLabel)
+    #else
+    static let mTextPrimary = Color(.labelColor)
+    static let mTextSecondary = Color(.secondaryLabelColor)
+    static let mTextTertiary = Color(.tertiaryLabelColor)
+    #endif
 
     // Functional state colors — the only "visible" colors
     static let mOnTarget = Color.green      // hit target

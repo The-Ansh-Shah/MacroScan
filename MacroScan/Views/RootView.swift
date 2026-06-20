@@ -5,21 +5,23 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [UserProfile]
 
+    @State private var showingOnboarding = false
+
     var body: some View {
         TabView {
-            TodayView()
+            TodayTabView()
                 .tabItem {
                     Label("Today", systemImage: "chart.bar.fill")
-                }
-
-            DiningView()
-                .tabItem {
-                    Label("Dining", systemImage: "building.2")
                 }
 
             HistoryView()
                 .tabItem {
                     Label("History", systemImage: "calendar")
+                }
+
+            MeView()
+                .tabItem {
+                    Label("Me", systemImage: "person.crop.circle")
                 }
 
             SettingsView()
@@ -29,6 +31,15 @@ struct RootView: View {
         }
         .onAppear {
             ensureUserProfile()
+            migrateDiningHallFoods()
+            if let profile = profiles.first, profile.heightIn == nil && profile.ageYears == nil {
+                showingOnboarding = true
+            }
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            if let profile = profiles.first {
+                ProfileSetupView(profile: profile)
+            }
         }
     }
 
@@ -39,9 +50,19 @@ struct RootView: View {
             modelContext.insert(profile)
         }
     }
+
+    private func migrateDiningHallFoods() {
+        let affected = (try? modelContext.fetch(FetchDescriptor<Food>(
+            predicate: #Predicate { $0.sourceRaw == "diningHall" }
+        ))) ?? []
+        for food in affected {
+            food.sourceRaw = "manual"
+        }
+        if !affected.isEmpty { try? modelContext.save() }
+    }
 }
 
 #Preview {
     RootView()
-        .modelContainer(for: [Food.self, LogEntry.self, UserProfile.self, DiningMenu.self], inMemory: true)
+        .modelContainer(for: [Food.self, LogEntry.self, UserProfile.self, BodyMeasurement.self, WeightGoal.self], inMemory: true)
 }

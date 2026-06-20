@@ -25,6 +25,7 @@ Quick-reference file for debugging patterns and implementation shortcuts.
 - **Enums in @Model:** SwiftData can't store raw enums directly. Store as `String` (e.g. `mealTypeRaw: String`) with a computed property for the typed enum. See `Food.sourceRaw`, `LogEntry.mealTypeRaw`, `DiningMenu.locationRaw`.
 - **@Query with dynamic dates:** `#Predicate` can't call computed properties like `Date().startOfDay`. Instead, query all and filter in a computed property: `allEntries.filter { $0.loggedAt >= startOfToday }`.
 - **@Model classes are already Identifiable** via `PersistentModel`. Don't add `extension Food: Identifiable {}` — it causes "does not conform to PersistentModel" errors.
+- **@Bindable for @Model bindings:** You can't use `$profile` on a computed `UserProfile?` property. Extract a child view that takes the unwrapped `@Model` object and use `@Bindable var profile: UserProfile` on it. Bind to raw `String` properties (e.g. `$profile.dietGoalRaw`) for Pickers on enum-backed stored properties.
 - **FoodRepository** takes `ModelContext` in init, created inline: `FoodRepository(modelContext: modelContext)`. Not a singleton.
 
 ## Design System Tokens
@@ -52,27 +53,35 @@ MealRanker.topFoods(from:limit:) -> [Food]  (score = timesLogged * exp(-daysSinc
 FoodRepository(modelContext:) — not a singleton, create per-use
 ```
 
-## Upcoming Phase Notes
+## Completed Implementation Notes
 
 ### Phase 5 — History + Settings
-- `HistoryView` needs `import Charts` for Swift Charts
-- `SettingsView` currently a placeholder stub — needs TargetsEditor + DietPreferencesEditor
-- `WeeklyReviewView` not yet created — needs a new file
-- `FoodRepository.entriesForWeek(startingFrom:)` already exists for chart data
+- `HistoryView` uses `import Charts` with `BarMark` + `RuleMark` for targets
+- `DaySummary` is a private struct in HistoryView — computes last7Days from allEntries
+- `SettingsView` uses `Binding` on `@Query`-fetched profile — SwiftData auto-persists changes
+- `ExclusionsEditor` is in SettingsView.swift — separate struct, NavigationLink push
+- `WeeklyReviewView` has free-text journal field (State only — not persisted yet)
 
 ### Phase 6 — Dining Hall
-- `DiningMenu` model exists, `DiningMenuItem` is a `Codable` struct stored in array
-- `DiningMenuService` and `DiningOptimizer` files don't exist yet
-- `OptimizerView` and `OptimizerResultView` files don't exist yet
-- `DiningView` currently a placeholder stub
+- `DiningMenuService` is an actor with `@MainActor` fetch method (needs modelContext)
+- Placeholder base URL — swap to real GitHub raw URL once scraper is live
+- `DiningOptimizer.optimize()` is a pure static function — no actor needed
+- Greedy algo caps at 2.0 servings per item, rounds to 0.5 increments
+- `OptimizerView` "Accept Plan" creates Food + LogEntry for each planned item
 
 ### Phase 7 — Close the Gap
-- `CloseGapView` doesn't exist yet
-- Needs: remaining targets (profile targets - daily totals), filter foods by what closes biggest gap
-- `MealRanker.topFoods` already ranks by recency+frequency — extend for gap-closing
+- `CloseGapView` reuses `ScanResultSheet` for logging selected suggestions
+- `MealRanker.closeGapSuggestions` scores: `(proteinFill * 3 + fiberFill) * (1 + recencyBoost)`
+- Foods exceeding calorie gap by >50 cal are filtered out
 
 ### Phase 8 — Polish
-- Empty states: `EmptyStateView` component exists, ensure every list uses it
-- Loading skeletons: not built yet, need shimmer modifier
-- Transitions: `.spring(response: 0.4, dampingFraction: 0.8)` per architecture
-- Ring animation: `.easeOut(duration: 1.2)` — verify MacroRing uses this
+- `ShimmerModifier` uses `LinearGradient` overlay with repeating animation
+- `SkeletonRow` is a pre-built loading placeholder matching FoodRow dimensions
+- All loading states use skeleton rows (DiningView) or ProgressView (scanner, AI)
+- Transitions: scanner uses `.scale.combined(with: .opacity)`
+
+### Remaining Work (future)
+- **Deployment target**: Must be set to iOS 18.0 in Xcode project settings (can't edit pbxproj from code)
+- **Dining data pipeline**: Replace placeholder URL in DiningMenuService once scraper is built
+- **Weekly journal persistence**: WeeklyReviewView journal text is @State only — not saved to SwiftData
+- **App Icon + Launch Screen**: Not yet created

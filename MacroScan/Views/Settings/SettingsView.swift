@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -37,9 +38,19 @@ struct SettingsView: View {
 
 /// Extracted so we can use @Bindable on the SwiftData @Model
 private struct SettingsFormView: View {
+    @Environment(\.modelContext) private var modelContext
     @Bindable var profile: UserProfile
     let foodCount: Int
     let entryCount: Int
+
+    @State private var exportURL: URL?
+    @State private var showingShareSheet = false
+    @State private var showingDocumentPicker = false
+    @State private var isExporting = false
+    @State private var exportErrorMessage: String?
+    @State private var importResultMessage: String?
+    @State private var showingExportError = false
+    @State private var showingImportResult = false
 
     private var profileSummary: String {
         var parts: [String] = []
@@ -142,6 +153,28 @@ private struct SettingsFormView: View {
                         .font(.mBody)
                         .foregroundStyle(Color.mTextSecondary)
                 }
+
+                Button {
+                    exportData()
+                } label: {
+                    HStack {
+                        Label(isExporting ? "Exporting…" : "Export data", systemImage: "square.and.arrow.up")
+                            .font(.mBody)
+                        Spacer()
+                    }
+                }
+                .disabled(isExporting)
+
+                Button {
+                    showingDocumentPicker = true
+                } label: {
+                    Label("Import from file", systemImage: "square.and.arrow.down")
+                        .font(.mBody)
+                }
+
+                Text("Export creates a complete backup of your foods, logs, recipes, and measurements. Import merges data from a previous export — existing entries are kept, new ones added.")
+                    .font(.mCaption)
+                    .foregroundStyle(Color.mTextTertiary)
             }
 
             Section("Apple Health") {
@@ -192,8 +225,69 @@ private struct SettingsFormView: View {
         }
         .keyboardDoneButton()
         .navigationTitle("Settings")
+        .alert("Export Error", isPresented: $showingExportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportErrorMessage ?? "")
+        }
+        .alert("Import Complete", isPresented: $showingImportResult) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importResultMessage ?? "")
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let url = exportURL {
+                ShareSheet(items: [url])
+            }
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            #if canImport(UIKit)
+            DocumentPicker { url in
+                importData(from: url)
+                showingDocumentPicker = false
+            }
+            #endif
+        }
     }
 
+    // MARK: - Data helpers
+
+    private func exportData() {
+        isExporting = true
+        Task {
+            do {
+                let url = try DataExportService(modelContext: modelContext).exportAll()
+                await MainActor.run {
+                    exportURL = url
+                    isExporting = false
+                    showingShareSheet = true
+                }
+            } catch {
+                await MainActor.run {
+                    isExporting = false
+                    exportErrorMessage = error.localizedDescription
+                    showingExportError = true
+                }
+            }
+        }
+    }
+
+    private func importData(from url: URL) {
+        Task {
+            do {
+                let result = try DataExportService(modelContext: modelContext).importFrom(url)
+                await MainActor.run {
+                    importResultMessage = result.summary
+                    showingImportResult = true
+                }
+            } catch {
+                await MainActor.run {
+                    importResultMessage = error.localizedDescription
+                    showingImportResult = true
+                }
+            }
+        }
+    }
 }
 
 // MARK: - HealthKit Settings
@@ -251,6 +345,45 @@ struct HealthKitSettingsSection: View {
         }
     }
 }
+
+// MARK: - Share Sheet (Phase 40)
+
+#if canImport(UIKit)
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+struct DocumentPicker: UIViewControllerRepresentable {
+    let onPick: (URL) -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json])
+        picker.allowsMultipleSelection = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onPick: (URL) -> Void
+        init(onPick: @escaping (URL) -> Void) { self.onPick = onPick }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            onPick(url)
+        }
+    }
+}
+#endif
 
 // MARK: - Exclusions Editor
 

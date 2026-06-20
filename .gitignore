@@ -1,0 +1,18 @@
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+.swiftpm/
+
+# Secrets — never commit
+MacroScan/Secrets.plist
+Secrets.xcconfig

@@ -6,7 +6,6 @@ final class Food {
     var name: String
     var brand: String?
     var barcode: String?
-    var diningLocationRaw: String?
     var servingSizeGrams: Double
 
     // Macros per servingSizeGrams
@@ -26,6 +25,17 @@ final class Food {
     var containsMushrooms: Bool
     var isFavorite: Bool
 
+    /// Parsed ingredient list when available (e.g. from OFF).
+    /// Empty array if unknown. Inline default required for SwiftData migration.
+    var ingredients: [String] = []
+
+    // Phase 39: user has manually verified/corrected macros for this barcode food
+    var userVerified: Bool = false
+    var lastVerifiedAt: Date? = nil
+
+    // Phase 40: stable export ID for JSON backup deduplication
+    var exportID: UUID = UUID()
+
     // Ranking bookkeeping
     var timesLogged: Int
     var lastLoggedAt: Date?
@@ -36,19 +46,10 @@ final class Food {
         set { sourceRaw = newValue.rawValue }
     }
 
-    var diningLocation: DiningLocation? {
-        get {
-            guard let raw = diningLocationRaw else { return nil }
-            return DiningLocation(rawValue: raw)
-        }
-        set { diningLocationRaw = newValue?.rawValue }
-    }
-
     init(
         name: String,
         brand: String? = nil,
         barcode: String? = nil,
-        diningLocation: DiningLocation? = nil,
         servingSizeGrams: Double,
         calories: Double,
         proteinG: Double,
@@ -62,12 +63,12 @@ final class Food {
         isVegetarian: Bool = true,
         containsEggs: Bool = false,
         containsMushrooms: Bool = false,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        ingredients: [String] = []
     ) {
         self.name = name
         self.brand = brand
         self.barcode = barcode
-        self.diningLocationRaw = diningLocation?.rawValue
         self.servingSizeGrams = servingSizeGrams
         self.calories = calories
         self.proteinG = proteinG
@@ -82,6 +83,7 @@ final class Food {
         self.containsEggs = containsEggs
         self.containsMushrooms = containsMushrooms
         self.isFavorite = isFavorite
+        self.ingredients = ingredients
         self.timesLogged = 0
         self.lastLoggedAt = nil
         self.createdAt = Date()
